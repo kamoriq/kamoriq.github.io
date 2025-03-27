@@ -199,7 +199,7 @@
                 
                 obstacles = [
                     { x: canvas.width / 4, y: canvas.height - 80, width: 30, height: 80 },
-                    { x: canvas.width / 2, y: canvas.height - 250, width: 200, height: 30 },
+                    { x: canvas.width / 2, y: canvas.height - 200, width: 200, height: 30 },
                     { x: canvas.width * 3/4, y: canvas.height - 150, width: 30, height: 150 }
                 ];
                 
@@ -316,8 +316,8 @@
         // ボールを打つ
         function hitBall() {
             if (!ball.isMoving && isChargingPower) {
-                ball.vx = aimDirection.x * power;
-                ball.vy = aimDirection.y * power;
+                ball.vx = aimDirection.x * 1.1 * power;
+                ball.vy = aimDirection.y * 1.1 * power;
                 ball.isMoving = true;
                 isChargingPower = false;
                 powerBar.style.width = '0%';

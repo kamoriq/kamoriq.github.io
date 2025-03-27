@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matter.jsの基本サンプル</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        button {
+            margin: 5px;
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+    <div id="controls">
+        <button id="add-circle">円を追加</button>
+        <button id="add-rectangle">四角形を追加</button>
+        <button id="add-polygon">多角形を追加</button>
+        <button id="launch-ball">球を配置/発射</button>
+        <button id="reset">リセット</button>
+    </div>
+
+    <div id="instructions"
+        style="position: absolute; bottom: 10px; left: 10px; color: #fff; background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
+        1. キャンバス上をクリックして球を配置<br>
+        2. マウスを動かして方向とパワーを調整<br>
+        3. もう一度クリックまたはスペースキーで発射<br>
+        ESCキーでキャンセル
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        // Matter.jsのモジュール
+        const Engine = Matter.Engine;
+        const Render = Matter.Render;
+        const Runner = Matter.Runner;
+        const Bodies = Matter.Bodies;
+        const Composite = Matter.Composite;
+        const Body = Matter.Body;
+        const Mouse = Matter.Mouse;
+        const MouseConstraint = Matter.MouseConstraint;
+
+        // エンジンを作成
+        const engine = Engine.create();
+
+        // レンダラーを作成
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                background: '#f0f0f0'
+            }
+        });
+
+        // ランナーを作成
+        const runner = Runner.create();
+
+        // 壁を作成
+        const ground = Bodies.rectangle(
+            window.innerWidth / 2,
+            window.innerHeight,
+            window.innerWidth,
+            50,
+            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+        );
+
+        const ceiling = Bodies.rectangle(
+            window.innerWidth / 2,
+            0,
+            window.innerWidth,
+            50,
+            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+        );
+
+        const leftWall = Bodies.rectangle(
+            0,
+            window.innerHeight / 2,
+            50,
+            window.innerHeight,
+            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+        );
+
+        const rightWall = Bodies.rectangle(
+            window.innerWidth,
+            window.innerHeight / 2,
+            50,
+            window.innerHeight,
+            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+        );
+
+        // 世界に壁を追加
+        Composite.add(engine.world, [ground, ceiling, leftWall, rightWall]);
+
+        // マウス制御をカスタマイズ（オブジェクトのドラッグは無効化）
+        const mouse = Mouse.create(render.canvas);
+
+        // マウスをレンダリングに同期
+        render.mouse = mouse;
+
+        // 色のリスト
+        const colors = [
+            '#F94144', '#F3722C', '#F8961E', '#F9C74F',
+            '#90BE6D', '#43AA8B', '#577590', '#277DA1'
+        ];
+
+        // ランダムな色を取得
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // ランダムな位置を取得
+        function getRandomPosition() {
+            const padding = 100;
+            return {
+                x: Math.random() * (window.innerWidth - padding * 2) + padding,
+                y: Math.random() * (window.innerHeight / 2) + padding
+            };
+        }
+
+        // 円を追加
+        function addCircle() {
+            const position = getRandomPosition();
+            const radius = 20 + Math.random() * 30;
+
+            const circle = Bodies.circle(position.x, position.y, radius, {
+                restitution: 0.8,
+                friction: 0.005,
+                render: {
+                    sprite: {
+                        texture: 'cat.png',
+                        xScale: 1,
+                        yScale: 1
+                    }
+                }
+            });
+
+            Composite.add(engine.world, circle);
+        }
+
+        // 四角形を追加
+        function addRectangle() {
+            const position = getRandomPosition();
+            const width = 40 + Math.random() * 60;
+            const height = 40 + Math.random() * 60;
+
+            const rectangle = Bodies.rectangle(position.x, position.y, width, height, {
+                restitution: 0.6,
+                friction: 0.1,
+                render: {
+                    fillStyle: getRandomColor()
+                }
+            });
+
+            Composite.add(engine.world, rectangle);
+        }
+
+        // 多角形を追加
+        function addPolygon() {
+            const position = getRandomPosition();
+            const sides = Math.floor(3 + Math.random() * 5); // 3〜7辺
+            const radius = 25 + Math.random() * 25;
+
+            const polygon = Bodies.polygon(position.x, position.y, sides, radius, {
+                restitution: 0.7,
+                friction: 0.05,
+                render: {
+                    fillStyle: getRandomColor()
+                }
+            });
+
+            Composite.add(engine.world, polygon);
+        }
+
+        // 世界をリセット
+        function resetWorld() {
+            Composite.clear(engine.world, false);
+            Composite.add(engine.world, [ground, ceiling, leftWall, rightWall, mouseConstraint]);
+        }
+
+        // 発射装置の状態
+        let launcherAngle = -45; // 初期角度（度）
+        let launcherPower = 0.2; // 初期パワー
+        let ballPosition = null; // クリックで選んだ球の位置
+        let aiming = false; // 狙い中かどうか
+
+        // 発射装置の矢印を更新（マウス位置に基づく）
+        function updateLauncherArrow(event) {
+            // ボールが配置されていない場合は何もしない
+            if (!ballPosition) return;
+
+            // マウス座標の取得
+            const rect = render.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            // ボールからマウスへのベクトル
+            const dx = mouseX - ballPosition.x;
+            const dy = mouseY - ballPosition.y;
+
+            // 角度を計算（ラジアン）
+            const angle = Math.atan2(dy, dx);
+
+            // 角度を度に変換して保存
+            launcherAngle = angle * 180 / Math.PI;
+
+            // ベクトルの長さに基づいてパワーを調整
+            const length = Math.sqrt(dx * dx + dy * dy);
+            launcherPower = Math.min(Math.max(length / 300, 0.1), 0.1);
+
+            // 正規化されたベクトル
+            const normalizedDx = dx / (length || 1); // 0除算防止
+            const normalizedDy = dy / (length || 1);
+
+            // 矢印の長さ
+            const arrowLength = 30 + launcherPower * 100;
+
+            // 矢印の終点
+            const endX = ballPosition.x + normalizedDx * arrowLength;
+            const endY = ballPosition.y + normalizedDy * arrowLength;
+
+            // 既存のSVG矢印を削除
+            const existingArrow = document.getElementById('aim-arrow-svg');
+            if (existingArrow) {
+                existingArrow.remove();
+            }
+
+            // SVG矢印を作成
+            const svgContainer = document.createElement('div');
+            svgContainer.id = 'aim-arrow-svg';
+            svgContainer.style.position = 'absolute';
+            svgContainer.style.top = '0';
+            svgContainer.style.left = '0';
+            svgContainer.style.width = '100%';
+            svgContainer.style.height = '100%';
+            svgContainer.style.pointerEvents = 'none';
+            svgContainer.style.zIndex = '1000';
+
+            // SVG要素を作成
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+
+            // マーカー（矢印の先端）を定義
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+            polygon.setAttribute('fill', 'red');
+
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+
+            // 線を作成
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', ballPosition.x);
+            line.setAttribute('y1', ballPosition.y);
+            line.setAttribute('x2', endX);
+            line.setAttribute('y2', endY);
+            line.setAttribute('stroke', 'red');
+            line.setAttribute('stroke-width', '3');
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+
+            svg.appendChild(line);
+            svgContainer.appendChild(svg);
+            document.body.appendChild(svgContainer);
+        }
+
+        // クリックで球の位置を設定
+        render.canvas.addEventListener('mousedown', function (event) {
+            const rect = render.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            // 既にボールがある場合は発射
+            if (ballPosition && aiming) {
+                launchBall();
+                // 矢印を削除
+                const arrow = document.getElementById('aim-arrow-svg');
+                if (arrow) arrow.remove();
+                ballPosition = null;
+                aiming = false;
+                return;
+            }
+
+            // 新しい位置をセット
+            ballPosition = { x: mouseX, y: mouseY };
+
+            // 仮のボールを表示
+            renderTempBall();
+
+            // 狙いモードに入る
+            aiming = true;
+        });
+
+        // マウス移動で矢印を更新
+        render.canvas.addEventListener('mousemove', function (event) {
+            if (aiming) {
+                updateLauncherArrow(event);
+            }
+        });
+
+        // キーボード制御（ESCでキャンセル）
+        document.addEventListener('keydown', function (event) {
+            // ESCで発射をキャンセル
+            if (event.key === 'Escape') {
+                const arrow = document.getElementById('aim-arrow-svg');
+                if (arrow) arrow.remove();
+                const tempBall = document.getElementById('temp-ball');
+                if (tempBall) tempBall.remove();
+                ballPosition = null;
+                aiming = false;
+            }
+
+            // スペースキーで発射
+            if ((event.key === ' ' || event.key === 'Spacebar') && ballPosition) {
+                launchBall();
+                // 矢印を削除
+                const arrow = document.getElementById('aim-arrow-svg');
+                if (arrow) arrow.remove();
+                ballPosition = null;
+                aiming = false;
+            }
+        });
+
+        // 仮のボールを描画
+        function renderTempBall() {
+            // 既存の仮ボールを削除
+            const existingBall = document.getElementById('temp-ball');
+            if (existingBall) existingBall.remove();
+
+            // 新しい仮ボールを作成
+            const tempBall = document.createElement('div');
+            tempBall.id = 'temp-ball';
+            tempBall.style.position = 'absolute';
+            tempBall.style.width = '30px';
+            tempBall.style.height = '30px';
+            tempBall.style.borderRadius = '50%';
+            tempBall.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+            tempBall.style.left = (ballPosition.x - 15) + 'px';
+            tempBall.style.top = (ballPosition.y - 15) + 'px';
+            document.body.appendChild(tempBall);
+        }
+
+        // 球を打ち出す
+        function launchBall() {
+            if (!ballPosition) return;
+
+            // 仮ボールを削除
+            const tempBall = document.getElementById('temp-ball');
+            if (tempBall) tempBall.remove();
+
+            // 角度をラジアンに変換
+            const angleRad = launcherAngle * Math.PI / 180;
+
+            // 発射方向ベクトル
+            const dirX = Math.cos(angleRad);
+            const dirY = Math.sin(angleRad);
+
+            // 球を作成
+            const ball = Bodies.circle(
+                ballPosition.x,
+                ballPosition.y,
+                15, // 半径
+                {
+                    restitution: 0.9, // 反発係数
+                    friction: 0.001,  // 摩擦
+                    render: {
+                        fillStyle: '#ff0000' // 赤色
+                    }
+                }
+            );
+
+            // 世界に追加
+            Composite.add(engine.world, ball);
+
+            // 力を加える
+            Body.applyForce(
+                ball,
+                ball.position,
+                {
+                    x: dirX * launcherPower,
+                    y: dirY * launcherPower
+                }
+            );
+        }
+
+        document.getElementById('add-circle').addEventListener('click', addCircle);
+        document.getElementById('add-rectangle').addEventListener('click', addRectangle);
+        document.getElementById('add-polygon').addEventListener('click', addPolygon);
+        document.getElementById('launch-ball').addEventListener('click', function () {
+            // 既に配置済みの場合は発射
+            if (ballPosition) {
+                launchBall();
+                // 矢印を削除
+                const arrow = document.getElementById('aim-arrow-svg');
+                if (arrow) arrow.remove();
+                const tempBall = document.getElementById('temp-ball');
+                if (tempBall) tempBall.remove();
+                ballPosition = null;
+                aiming = false;
+            } else {
+                // まだ配置されていない場合は中央に配置
+                ballPosition = {
+                    x: window.innerWidth / 2,
+                    y: window.innerHeight / 2
+                };
+                renderTempBall();
+                aiming = true;
+            }
+        });
+        document.getElementById('reset').addEventListener('click', function () {
+            resetWorld();
+            // 矢印と仮ボールを削除
+            const arrow = document.getElementById('aim-arrow');
+            if (arrow) arrow.remove();
+            const tempBall = document.getElementById('temp-ball');
+            if (tempBall) tempBall.remove();
+            ballPosition = null;
+            aiming = false;
+        });
+
+        // ウィンドウリサイズ対応
+        window.addEventListener('resize', function () {
+            render.options.width = window.innerWidth;
+            render.options.height = window.innerHeight;
+            render.canvas.width = window.innerWidth;
+            render.canvas.height = window.innerHeight;
+
+            // 壁の位置を更新
+            Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight });
+            Body.setPosition(ceiling, { x: window.innerWidth / 2, y: 0 });
+            Body.setPosition(leftWall, { x: 0, y: window.innerHeight / 2 });
+            Body.setPosition(rightWall, { x: window.innerWidth, y: window.innerHeight / 2 });
+
+            // 壁のサイズを更新
+            Body.setVertices(ground, Bodies.rectangle(window.innerWidth / 2, window.innerHeight, window.innerWidth, 50).vertices);
+            Body.setVertices(ceiling, Bodies.rectangle(window.innerWidth / 2, 0, window.innerWidth, 50).vertices);
+            Body.setVertices(leftWall, Bodies.rectangle(0, window.innerHeight / 2, 50, window.innerHeight).vertices);
+            Body.setVertices(rightWall, Bodies.rectangle(window.innerWidth, window.innerHeight / 2, 50, window.innerHeight).vertices);
+        });
+
+        // 初期オブジェクトを追加
+        for (let i = 0; i < 5; i++) {
+            addCircle();
+            addRectangle();
+            addPolygon();
+        }
+
+        // 発射装置を物理世界に追加
+        const launcher = Bodies.rectangle(
+            50 + 20, // 中央X
+            window.innerHeight - 80 / 2 - 10, // 中央Y
+            40, // 幅
+            80, // 高さ
+            {
+                isStatic: true,
+                render: {
+                    fillStyle: '#777',
+                    strokeStyle: '#444',
+                    lineWidth: 1
+                }
+            }
+        );
+
+        Composite.add(engine.world, launcher);
+
+        // 初期矢印の向きを設定
+        updateLauncherArrow();
+
+        // レンダラーを実行
+        Render.run(render);
+
+        // エンジンを実行
+        Runner.run(runner, engine);
+    </script>
+</body>
+
+</html>
