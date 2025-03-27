@@ -1,684 +1,144 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理演算ゴルフゲーム</title>
+    <title>ミニゲームコレクション</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            background-color: #87CEEB;
             font-family: 'Arial', sans-serif;
-        }
-        
-        #gameCanvas {
-            display: block;
-            background-color: #78AB46;
-        }
-        
-        #gameInfo {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            font-size: 18px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        
-        #powerMeter {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            width: 200px;
-            height: 20px;
-            background-color: #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        #powerBar {
-            height: 100%;
-            width: 0%;
-            background-color: #ff6600;
-            transition: width 0.1s;
-        }
-        
-        #controls {
-            position: absolute;
-            bottom: 50px;
-            left: 20px;
-            color: white;
-            font-size: 16px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        
-        #winScreen {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
+            background-color: #f0f2f5;
+            margin: 0;
             padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
             border-radius: 10px;
-            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         
-        button {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 10px 20px;
+        h1 {
             text-align: center;
-            text-decoration: none;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .game-card {
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        
+        .game-image {
+            width: 100%;
+            height: 180px;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #666;
+        }
+        
+        .game-info {
+            padding: 15px;
+        }
+        
+        .game-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .game-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .play-button {
             display: inline-block;
-            font-size: 16px;
-            margin: 10px 2px;
-            cursor: pointer;
-            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
         }
         
-        button:hover {
-            background-color: #45a049;
+        .play-button:hover {
+            background-color: #2980b9;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #7f8c8d;
+            font-size: 14px;
         }
     </style>
 </head>
-
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="gameInfo">ストローク: 0 | レベル: 1</div>
-    <div id="controls">スペースキー: パワーチャージ | マウス: 方向設定 | R: リセット</div>
-    <div id="powerMeter">
-        <div id="powerBar"></div>
+    <div class="container">
+        <h1>ミニゲームコレクション</h1>
+        
+        <div class="games-grid">
+            <!-- ゴルフゲーム -->
+            <div class="game-card">
+                <div class="game-image">
+                    <span>🏌️‍♂️</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-title">物理演算ゴルフ</div>
+                    <div class="game-description">
+                        物理法則に基づいたゴルフゲーム。3つの難易度レベルで遊べます。
+                        スペースキーでパワーチャージ、マウスで方向を決めましょう。
+                    </div>
+                    <a href="golf-game.html" class="play-button">プレイする</a>
+                </div>
+            </div>
+            
+            <!-- 新しいゲーム用のカード -->
+            <div class="game-card">
+                <div class="game-image">
+                    <span>🎮</span>
+                </div>
+                <div class="game-info">
+                    <div class="game-title">新しいゲーム</div>
+                    <div class="game-description">
+                        準備中の新しいゲーム。どんなゲームにするか考え中です。
+                        アイデアがあれば教えてください！
+                    </div>
+                    <a href="new-game.html" class="play-button">近日公開</a>
+                </div>
+            </div>
+            
+            <!-- さらにゲームを追加する場合はここにカードを追加 -->
+        </div>
+        
+        <footer>
+            <p>© 2025 ミニゲームコレクション - GitHubで公開中</p>
+        </footer>
     </div>
-    <div id="winScreen">
-        <h2>レベルクリア！</h2>
-        <p>ストローク数: <span id="finalStrokes">0</span></p>
-        <button id="nextLevelBtn">次のレベル</button>
-    </div>
-
-    <script>
-        // ゲームの設定
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const powerBar = document.getElementById('powerBar');
-        const gameInfo = document.getElementById('gameInfo');
-        const winScreen = document.getElementById('winScreen');
-        const finalStrokes = document.getElementById('finalStrokes');
-        const nextLevelBtn = document.getElementById('nextLevelBtn');
-
-        // キャンバスをウィンドウサイズに合わせる
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        // ゲームの物理定数
-        const gravity = 0.2;
-        const friction = 0.98;
-        const bounceFactor = 0.6;
-
-        // ゲーム状態
-        let ball = {
-            x: 100,
-            y: canvas.height - 50,
-            radius: 10,
-            vx: 0,
-            vy: 0,
-            isMoving: false
-        };
-
-        let hole = {
-            x: canvas.width - 100,
-            y: canvas.height - 30,
-            radius: 15
-        };
-
-        let obstacles = [];
-        let terrain = [];
-
-        let power = 0;
-        let maxPower = 15;
-        let isChargingPower = false;
-        let powerIncreasing = true;
-        let aimDirection = {
-            x: 1,
-            y: 0
-        };
-        let strokes = 0;
-        let currentLevel = 1;
-        let maxLevel = 3;
-
-        // レベルデザイン
-        function setupLevel(level) {
-            obstacles = [];
-            terrain = [];
-
-            // レベル1: 簡単なレベル
-            if (level === 1) {
-                ball = {
-                    x: 100,
-                    y: canvas.height - 50,
-                    radius: 10,
-                    vx: 0,
-                    vy: 0,
-                    isMoving: false
-                };
-
-                hole = {
-                    x: canvas.width - 100,
-                    y: canvas.height - 30,
-                    radius: 15
-                };
-
-                // 障害物: 四角形 (x, y, width, height)
-                obstacles = [{
-                    x: canvas.width / 3,
-                    y: canvas.height - 100,
-                    width: 30,
-                    height: 100
-                }, {
-                    x: canvas.width * 2 / 3,
-                    y: canvas.height - 150,
-                    width: 30,
-                    height: 150
-                }];
-
-                // 地形: 傾斜 (x1, y1, x2, y2)
-                terrain = [{
-                        x1: 0,
-                        y1: canvas.height,
-                        x2: canvas.width,
-                        y2: canvas.height
-                    }, // 地面
-                    {
-                        x1: canvas.width / 2 - 100,
-                        y1: canvas.height - 30,
-                        x2: canvas.width / 2 + 100,
-                        y2: canvas.height - 60
-                    } // 小さな丘
-                ];
-            }
-            // レベル2: 中程度の難易度
-            else if (level === 2) {
-                ball = {
-                    x: 100,
-                    y: canvas.height - 50,
-                    radius: 10,
-                    vx: 0,
-                    vy: 0,
-                    isMoving: false
-                };
-
-                hole = {
-                    x: canvas.width - 100,
-                    y: canvas.height - 200,
-                    radius: 15
-                };
-
-                obstacles = [{
-                    x: canvas.width / 4,
-                    y: canvas.height - 80,
-                    width: 30,
-                    height: 80
-                }, {
-                    x: canvas.width / 2,
-                    y: canvas.height - 250,
-                    width: 200,
-                    height: 30
-                }, {
-                    x: canvas.width * 3 / 4,
-                    y: canvas.height - 150,
-                    width: 30,
-                    height: 150
-                }];
-
-                terrain = [{
-                        x1: 0,
-                        y1: canvas.height,
-                        x2: canvas.width,
-                        y2: canvas.height
-                    }, // 地面
-                    {
-                        x1: canvas.width / 2 - 250,
-                        y1: canvas.height,
-                        x2: canvas.width / 2,
-                        y2: canvas.height - 100
-                    }, // 左の斜面
-                    {
-                        x1: canvas.width / 2,
-                        y1: canvas.height - 100,
-                        x2: canvas.width,
-                        y2: canvas.height
-                    } // 右の斜面
-                ];
-            }
-            // レベル3: 難しいレベル
-            else if (level === 3) {
-                ball = {
-                    x: 100,
-                    y: 100,
-                    radius: 10,
-                    vx: 0,
-                    vy: 0,
-                    isMoving: false
-                };
-
-                hole = {
-                    x: canvas.width - 100,
-                    y: canvas.height - 30,
-                    radius: 15
-                };
-
-                obstacles = [{
-                    x: canvas.width / 5,
-                    y: 200,
-                    width: 30,
-                    height: canvas.height - 200
-                }, {
-                    x: canvas.width * 2 / 5,
-                    y: 0,
-                    width: 30,
-                    height: canvas.height - 200
-                }, {
-                    x: canvas.width * 3 / 5,
-                    y: 200,
-                    width: 30,
-                    height: canvas.height - 200
-                }, {
-                    x: canvas.width * 4 / 5,
-                    y: 0,
-                    width: 30,
-                    height: canvas.height - 300
-                }];
-
-                terrain = [{
-                        x1: 0,
-                        y1: canvas.height,
-                        x2: canvas.width,
-                        y2: canvas.height
-                    }, // 地面
-                    {
-                        x1: 0,
-                        y1: 150,
-                        x2: canvas.width / 5,
-                        y2: 150
-                    }, // プラットフォーム1
-                    {
-                        x1: canvas.width / 5 + 30,
-                        y1: 250,
-                        x2: canvas.width * 2 / 5,
-                        y2: 250
-                    }, // プラットフォーム2
-                    {
-                        x1: canvas.width * 2 / 5 + 30,
-                        y1: 350,
-                        x2: canvas.width * 3 / 5,
-                        y2: 350
-                    }, // プラットフォーム3
-                    {
-                        x1: canvas.width * 3 / 5 + 30,
-                        y1: 450,
-                        x2: canvas.width * 4 / 5,
-                        y2: 450
-                    }, // プラットフォーム4
-                    {
-                        x1: canvas.width * 4 / 5 + 30,
-                        y1: canvas.height - 100,
-                        x2: canvas.width,
-                        y2: canvas.height - 100
-                    } // プラットフォーム5
-                ];
-            }
-
-            updateGameInfo();
-        }
-
-        // ゲームの初期化
-        function init() {
-            setupLevel(currentLevel);
-            strokes = 0;
-            updateGameInfo();
-
-            // リサイズイベントリスナー
-            window.addEventListener('resize', function() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                setupLevel(currentLevel);
-            });
-
-            // マウスの動きを検出して狙いを設定
-            canvas.addEventListener('mousemove', function(e) {
-                if (!ball.isMoving) {
-                    const dx = e.clientX - ball.x;
-                    const dy = e.clientY - ball.y;
-                    const length = Math.sqrt(dx * dx + dy * dy);
-                    aimDirection = {
-                        x: dx / length,
-                        y: dy / length
-                    };
-                }
-            });
-
-            // キー入力の検出
-            window.addEventListener('keydown', function(e) {
-                // スペースキーでパワーチャージ開始
-                if (e.code === 'Space' && !ball.isMoving && !isChargingPower) {
-                    isChargingPower = true;
-                    powerIncreasing = true;
-                    power = 0;
-                }
-
-                // Rキーでレベルリセット
-                if (e.code === 'KeyR') {
-                    resetLevel();
-                }
-            });
-
-            window.addEventListener('keyup', function(e) {
-                // スペースキーを離してボールを打つ
-                if (e.code === 'Space' && isChargingPower) {
-                    hitBall();
-                }
-            });
-
-            // 次のレベルボタン
-            nextLevelBtn.addEventListener('click', function() {
-                if (currentLevel < maxLevel) {
-                    currentLevel++;
-                    winScreen.style.display = 'none';
-                    setupLevel(currentLevel);
-                } else {
-                    // ゲームクリア
-                    alert('おめでとうございます！全レベルクリアしました！');
-                    currentLevel = 1;
-                    winScreen.style.display = 'none';
-                    setupLevel(currentLevel);
-                }
-            });
-
-            // ゲームループの開始
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ボールを打つ
-        function hitBall() {
-            if (!ball.isMoving && isChargingPower) {
-                ball.vx = aimDirection.x * power;
-                ball.vy = aimDirection.y * power;
-                ball.isMoving = true;
-                isChargingPower = false;
-                powerBar.style.width = '0%';
-                strokes++;
-                updateGameInfo();
-            }
-        }
-
-        // レベルをリセット
-        function resetLevel() {
-            setupLevel(currentLevel);
-            strokes = 0;
-            updateGameInfo();
-        }
-
-        // ゲーム情報の更新
-        function updateGameInfo() {
-            gameInfo.textContent = `ストローク: ${strokes} | レベル: ${currentLevel}`;
-        }
-
-        // ゲームループ
-        function gameLoop() {
-            update();
-            render();
-            requestAnimationFrame(gameLoop);
-        }
-
-        // ゲーム状態の更新
-        function update() {
-            // パワーメーターの更新
-            if (isChargingPower) {
-                if (powerIncreasing) {
-                    power += 0.2;
-                    if (power >= maxPower) {
-                        power = maxPower;
-                        powerIncreasing = false;
-                    }
-                } else {
-                    power -= 0.2;
-                    if (power <= 0) {
-                        power = 0;
-                        powerIncreasing = true;
-                    }
-                }
-                powerBar.style.width = (power / maxPower * 100) + '%';
-            }
-
-            // ボールが動いている場合の物理演算
-            if (ball.isMoving) {
-                // 重力を適用
-                ball.vy += gravity;
-
-                // 速度を適用
-                ball.x += ball.vx;
-                ball.y += ball.vy;
-
-                // 摩擦を適用
-                ball.vx *= friction;
-                ball.vy *= friction;
-
-                // 速度が十分に小さくなったら停止
-                if (Math.abs(ball.vx) < 0.1 && Math.abs(ball.vy) < 0.1 && checkOnGround()) {
-                    ball.vx = 0;
-                    ball.vy = 0;
-                    ball.isMoving = false;
-                }
-
-                // 壁との衝突
-                if (ball.x - ball.radius < 0) {
-                    ball.x = ball.radius;
-                    ball.vx = -ball.vx * bounceFactor;
-                }
-                if (ball.x + ball.radius > canvas.width) {
-                    ball.x = canvas.width - ball.radius;
-                    ball.vx = -ball.vx * bounceFactor;
-                }
-                if (ball.y - ball.radius < 0) {
-                    ball.y = ball.radius;
-                    ball.vy = -ball.vy * bounceFactor;
-                }
-
-                // 障害物との衝突
-                obstacles.forEach(obstacle => {
-                    // 簡易的な矩形との衝突判定
-                    const closestX = Math.max(obstacle.x, Math.min(ball.x, obstacle.x + obstacle.width));
-                    const closestY = Math.max(obstacle.y, Math.min(ball.y, obstacle.y + obstacle.height));
-
-                    const distanceX = ball.x - closestX;
-                    const distanceY = ball.y - closestY;
-                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-                    if (distance < ball.radius) {
-                        // 衝突が発生
-                        const overlap = ball.radius - distance;
-                        const normalX = distanceX / distance;
-                        const normalY = distanceY / distance;
-
-                        // ボールを押し戻す
-                        ball.x += normalX * overlap;
-                        ball.y += normalY * overlap;
-
-                        // 速度を反射
-                        const dotProduct = ball.vx * normalX + ball.vy * normalY;
-                        ball.vx = (ball.vx - 2 * dotProduct * normalX) * bounceFactor;
-                        ball.vy = (ball.vy - 2 * dotProduct * normalY) * bounceFactor;
-                    }
-                });
-
-                // 地形との衝突
-                for (let i = 0; i < terrain.length; i++) {
-                    const t = terrain[i];
-                    // 線分に対する最も近い点を計算
-                    const lineLength = Math.sqrt((t.x2 - t.x1) * (t.x2 - t.x1) + (t.y2 - t.y1) * (t.y2 - t.y1));
-                    const dx = (t.x2 - t.x1) / lineLength;
-                    const dy = (t.y2 - t.y1) / lineLength;
-
-                    const u = ((ball.x - t.x1) * dx + (ball.y - t.y1) * dy) / lineLength;
-                    const closestU = Math.max(0, Math.min(1, u));
-
-                    const closestX = t.x1 + closestU * (t.x2 - t.x1);
-                    const closestY = t.y1 + closestU * (t.y2 - t.y1);
-
-                    const distanceX = ball.x - closestX;
-                    const distanceY = ball.y - closestY;
-                    const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-                    if (distance < ball.radius) {
-                        // 衝突が発生
-                        const overlap = ball.radius - distance;
-
-                        // 法線ベクトル (地形の垂直方向)
-                        const normalX = -dy;
-                        const normalY = dx;
-
-                        // ボールが地形の上側にある場合、法線の向きを揃える
-                        const dotCheck = distanceX * normalX + distanceY * normalY;
-                        const finalNormalX = dotCheck < 0 ? -normalX : normalX;
-                        const finalNormalY = dotCheck < 0 ? -normalY : normalY;
-
-                        // ボールを押し戻す
-                        ball.x += finalNormalX * overlap;
-                        ball.y += finalNormalY * overlap;
-
-                        // 速度を反射
-                        const dotProduct = ball.vx * finalNormalX + ball.vy * finalNormalY;
-                        ball.vx = (ball.vx - 2 * dotProduct * finalNormalX) * bounceFactor;
-                        ball.vy = (ball.vy - 2 * dotProduct * finalNormalY) * bounceFactor;
-                    }
-                }
-
-                // ホールとの衝突（ボールがホールに入ったか）
-                const dx = ball.x - hole.x;
-                const dy = ball.y - hole.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < hole.radius && Math.abs(ball.vx) < 1 && Math.abs(ball.vy) < 1) {
-                    // レベルクリア
-                    ball.isMoving = false;
-                    finalStrokes.textContent = strokes;
-                    winScreen.style.display = 'block';
-                }
-            }
-        }
-
-        // ボールが地面に接触しているかチェック
-        function checkOnGround() {
-            for (let i = 0; i < terrain.length; i++) {
-                const t = terrain[i];
-                const lineLength = Math.sqrt((t.x2 - t.x1) * (t.x2 - t.x1) + (t.y2 - t.y1) * (t.y2 - t.y1));
-                const dx = (t.x2 - t.x1) / lineLength;
-                const dy = (t.y2 - t.y1) / lineLength;
-
-                const u = ((ball.x - t.x1) * dx + (ball.y - t.y1) * dy) / lineLength;
-                const closestU = Math.max(0, Math.min(1, u));
-
-                const closestX = t.x1 + closestU * (t.x2 - t.x1);
-                const closestY = t.y1 + closestU * (t.y2 - t.y1);
-
-                const distanceX = ball.x - closestX;
-                const distanceY = ball.y - closestY;
-                const distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-                if (distance <= ball.radius + 0.5) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // 描画関数
-        function render() {
-            // 背景をクリア
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // 空を描画
-            ctx.fillStyle = '#87CEEB';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // 地面を描画
-            ctx.fillStyle = '#78AB46';
-
-            // 地形を描画
-            terrain.forEach(t => {
-                ctx.beginPath();
-                if (t.y1 === t.y2) {
-                    // 水平な地形
-                    ctx.fillStyle = '#78AB46';
-                    ctx.fillRect(t.x1, t.y1, t.x2 - t.x1, canvas.height - t.y1);
-                } else {
-                    // 傾斜した地形
-                    ctx.fillStyle = '#78AB46';
-                    ctx.beginPath();
-                    ctx.moveTo(t.x1, t.y1);
-                    ctx.lineTo(t.x2, t.y2);
-                    ctx.lineTo(t.x2, canvas.height);
-                    ctx.lineTo(t.x1, canvas.height);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // 地形のエッジを描画
-                    ctx.strokeStyle = '#5D8A35';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(t.x1, t.y1);
-                    ctx.lineTo(t.x2, t.y2);
-                    ctx.stroke();
-                }
-            });
-
-            // 障害物を描画
-            ctx.fillStyle = '#8B4513';
-            obstacles.forEach(obstacle => {
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-            });
-
-            // ホールを描画
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(hole.x, hole.y, hole.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // ホールの旗を描画
-            ctx.fillStyle = '#FF0000';
-            ctx.fillRect(hole.x, hole.y - 30, 2, 30);
-            ctx.beginPath();
-            ctx.moveTo(hole.x + 2, hole.y - 30);
-            ctx.lineTo(hole.x + 12, hole.y - 25);
-            ctx.lineTo(hole.x + 2, hole.y - 20);
-            ctx.closePath();
-            ctx.fill();
-
-            // ボールを描画
-            ctx.fillStyle = '#FFF';
-            ctx.beginPath();
-            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-            ctx.fill();
-
-            // ボールが止まっている場合、狙い線を描画
-            if (!ball.isMoving) {
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(ball.x, ball.y);
-                ctx.lineTo(ball.x + aimDirection.x * 50, ball.y + aimDirection.y * 50);
-                ctx.stroke();
-            }
-        }
-
-        // ゲームの初期化と開始
-        init();
-    </script>
 </body>
-
 </html>
