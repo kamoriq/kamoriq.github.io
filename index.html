@@ -4,65 +4,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ボール物理ゲーム</title>
+    <title>QWOP風物理歩行ゲーム</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
-            background-color: #333;
+            padding: 20px;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             flex-direction: column;
-            color: white;
+            align-items: center;
+            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
         }
         
         canvas {
-            border: 2px solid #4CAF50;
-            background-color: #222;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+            background-color: #fff;
+            margin-top: 20px;
         }
         
-        #score {
+        .controls {
+            margin-top: 20px;
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .key {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        #distance {
             font-size: 24px;
             margin-top: 10px;
+            font-weight: bold;
         }
         
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 48px;
-            color: #FF5252;
-            display: none;
-        }
-        
-        button {
-            margin-top: 20px;
+        #restart {
             padding: 10px 20px;
-            font-size: 16px;
             background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
+            font-size: 16px;
             cursor: pointer;
+            margin-top: 10px;
         }
         
-        button:hover {
+        #restart:hover {
             background-color: #45a049;
         }
     </style>
 </head>
 
 <body>
-    <h1>ボール物理ゲーム</h1>
-    <div id="score">スコア: 0</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    <div id="game-over">ゲームオーバー！</div>
+    <h1>QWOP風物理歩行ゲーム</h1>
+    <div id="distance">走行距離: 0 m</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div class="controls">
+        <p>
+            <span class="key">Q</span> 左腿前方 |
+            <span class="key">W</span> 右腿前方 |
+            <span class="key">O</span> 左足前方 |
+            <span class="key">P</span> 右足前方
+        </p>
+        <p>
+            すべての筋肉をうまく調整して、できるだけ遠くまで走りましょう！
+        </p>
+    </div>
     <button id="restart">リスタート</button>
 
     <script src="game.js"></script>
