@@ -1,8 +1,15 @@
 // キャンバスの設定
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const distanceElement = document.getElementById('distance');
+const distanceElement = document.getElementById('distance'); // score→distanceに変更
+const gameOverElement = document.getElementById('game-over');
 const restartButton = document.getElementById('restart');
+
+// エラーチェック - 要素が見つからない場合のセーフガード
+if (!canvas) console.error("Canvas要素が見つかりません");
+if (!distanceElement) console.error("距離表示要素が見つかりません");
+if (!gameOverElement) console.error("ゲームオーバー要素が見つかりません");
+if (!restartButton) console.error("リスタートボタンが見つかりません");
 
 // 物理パラメータ
 const gravity = 0.5;
@@ -270,6 +277,22 @@ class Runner {
 // 走者のインスタンス
 let runner = new Runner();
 
+// ゲームの初期化
+function initGame() {
+    gameOver = false;
+    distance = 0;
+    runner = new Runner();
+
+    // セーフガード：要素が存在する場合のみ操作を行う
+    if (distanceElement) {
+        distanceElement.textContent = `走行距離: ${distance} m`;
+    }
+
+    if (gameOverElement) {
+        gameOverElement.style.display = 'none';
+    }
+}
+
 // ゲームループ
 function gameLoop() {
     // 背景のクリア
@@ -283,11 +306,15 @@ function gameLoop() {
     // 走者の描画
     runner.draw();
 
-    // 走行距離の表示更新
-    distanceElement.innerText = `走行距離: ${distance} m`;
+    // 走行距離の表示更新（セーフガード付き）
+    if (distanceElement) {
+        distanceElement.textContent = `走行距離: ${distance} m`;
+    }
 
     // ゲームオーバーメッセージ
-    if (gameOver) {
+    if (gameOver && gameOverElement) {
+        gameOverElement.style.display = 'block';
+
         ctx.save();
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -331,11 +358,12 @@ document.addEventListener('keyup', (event) => {
 });
 
 // リスタートボタン
-restartButton.addEventListener('click', () => {
-    gameOver = false;
-    runner = new Runner();
-    distance = 0;
-});
+if (restartButton) {
+    restartButton.addEventListener('click', () => {
+        initGame();
+    });
+}
 
 // ゲーム開始
-gameLoop();
+initGame();
+requestAnimationFrame(gameLoop);

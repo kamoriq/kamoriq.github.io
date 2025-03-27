@@ -4,67 +4,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QWOPテスト</title>
+    <title>QWOP風物理歩行ゲーム</title>
     <style>
         body {
-            text-align: center;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
             font-family: Arial, sans-serif;
         }
         
         canvas {
-            border: 2px solid black;
-            margin: 20px;
+            border: 2px solid #333;
+            background-color: #fff;
+            margin-top: 20px;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            background-color: #eee;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .key {
+            display: inline-block;
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            margin: 0 5px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        #distance {
+            font-size: 24px;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #FF5252;
+            display: none;
+        }
+        
+        #restart {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        #restart:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 
 <body>
-    <h1>QWOPテスト</h1>
-    <canvas id="gameCanvas" width="400" height="300"></canvas>
-    <p>キーを押してテスト: Q, W, O, P</p>
-    <div id="output">キーを押すとここに表示されます</div>
+    <h1>QWOP風物理歩行ゲーム</h1>
+    <div id="distance">走行距離: 0 m</div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="game-over">ゲームオーバー！</div>
+    <div class="controls">
+        <p>
+            <span class="key">Q</span> 左腿前方 |
+            <span class="key">W</span> 右腿前方 |
+            <span class="key">O</span> 左足前方 |
+            <span class="key">P</span> 右足前方
+        </p>
+        <p>
+            すべての筋肉をうまく調整して、できるだけ遠くまで走りましょう！
+        </p>
+    </div>
+    <button id="restart">リスタート</button>
 
-    <script>
-        // シンプルなテストスクリプト
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const output = document.getElementById('output');
-
-        // 背景を描画
-        ctx.fillStyle = '#eeeeff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // テキストを描画
-        ctx.fillStyle = 'black';
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('QWOPテスト - キーを押してください', canvas.width / 2, canvas.height / 2);
-
-        // キーボードイベントをリッスン
-        document.addEventListener('keydown', function(event) {
-            const key = event.key.toLowerCase();
-            if (['q', 'w', 'o', 'p'].includes(key)) {
-                output.textContent = key + ' キーが押されました！';
-
-                // キャンバスをクリア
-                ctx.fillStyle = '#eeeeff';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                // キーに応じた色で円を描画
-                const colors = {
-                    'q': 'red',
-                    'w': 'blue',
-                    'o': 'green',
-                    'p': 'purple'
-                };
-
-                ctx.fillStyle = colors[key];
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-    </script>
+    <script src="game.js"></script>
 </body>
 
 </html>
