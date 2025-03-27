@@ -1,477 +1,617 @@
 // キャンバスの設定
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const distanceElement = document.getElementById('distance');
-const gameOverElement = document.getElementById('game-over');
-const restartButton = document.getElementById('restart');
 
-// エラーチェック - 要素が見つからない場合のセーフガード
-if (!canvas) console.error("Canvas要素が見つかりません");
-if (!distanceElement) console.error("距離表示要素が見つかりません");
-if (!gameOverElement) console.error("ゲームオーバー要素が見つかりません");
-if (!restartButton) console.error("リスタートボタンが見つかりません");
+// ゲーム情報表示要素
+const holeNumberElement = document.getElementById('hole-number');
+const parElement = document.getElementById('par');
+const shotsElement = document.getElementById('shots');
+const totalScoreElement = document.getElementById('total-score');
+const windSpeedElement = document.getElementById('wind-speed');
+const windDirectionElement = document.getElementById('wind-direction');
+const powerbarElement = document.getElementById('powerbar');
+const gameOverElement = document.getElementById('game-over');
+const finalScoreElement = document.getElementById('final-score');
+
+// ボタン要素
+const restartHoleButton = document.getElementById('restart-hole');
+const nextHoleButton = document.getElementById('next-hole');
+const playAgainButton = document.getElementById('play-again');
 
 // 物理パラメータ
-const gravity = 0.25; // 重力（低めに設定）
-const buoyancy = 0.15; // 自然な浮力（鳥は空気より軽い）
-const flapForce = 0.8; // 羽ばたきの力
-const airResistance = 0.98; // 空気抵抗
-const maxVelocity = 8; // 最大速度
+const gravity = 0.2; // 重力
+const friction = 0.98; // 地面の摩擦
+const airResistance = 0.99; // 空気抵抗
+const bounceDamping = 0.6; // バウンド時の減衰
+const minStopVelocity = 0.05; // ボールが止まったと見なす速度
+const maxPower = 15; // 最大打球力
 
 // ゲーム状態
-let gameOver = false;
-let distance = 0;
-let bestDistance = 0;
-let scrollSpeed = 2; // 背景のスクロール速度
-let flapCooldown = 0; // 羽ばたきのクールダウン
-let flapCooldownMax = 10; // 羽ばたきの最大クールダウン
-
-// 雲の配列
-let clouds = [];
-const cloudCount = 10; // 雲の数
-
-// 木の配列（障害物）
-let trees = [];
-const treeSpacing = 500; // 木の間隔
-
-// キー状態
-const keys = {
-    ArrowUp: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    " ": false // スペースキー
+let gameState = {
+    currentHole: 0, // 現在のホール番号（0から始まる）
+    shots: 0, // 現在のホールでのショット数
+    totalScore: 0, // 合計スコア
+    ballInHole: false, // ボールがホールに入ったか
+    powerCharging: false, // パワーチャージ中か
+    power: 0, // 現在のパワー（0-100）
+    powerDirection: 1, // パワーゲージの増減方向
+    aiming: true, // 方向を決めている状態か
+    shotReady: false, // ショット準備完了状態か
+    windSpeed: 0, // 風速
+    windAngle: 0 // 風向き
 };
 
-// 鳥のクラス
-class Bird {
-    constructor() {
-        this.x = 200;
-        this.y = canvas.height / 2;
-        this.vx = 0;
-        this.vy = 0;
-        this.width = 40;
-        this.height = 30;
-        this.wingPosition = 0; // 羽の位置 (0-1)
-        this.wingDirection = 0.1; // 羽ばたきの方向
-        this.rotation = 0; // 鳥の回転角度
+// ボールのプロパティ
+let ball = {
+    x: 0,
+    y: 0,
+    radius: 8,
+    vx: 0,
+    vy: 0,
+    isMoving: false,
+    color: '#ffffff'
+};
+
+// ゴルフコースの定義（複数のホール）
+const golfCourse = [
+    // ホール1: パー3の簡単なコース
+    {
+        par: 3,
+        teePosition: { x: 100, y: 250 },
+        holePosition: { x: 700, y: 250 },
+        hazards: [
+            { type: 'bunker', x: 400, y: 300, width: 100, height: 40 },
+            { type: 'water', x: 300, y: 150, width: 150, height: 30 }
+        ],
+        terrain: [
+            { type: 'rough', x: 250, y: 350, width: 200, height: 60 }
+        ]
+    },
+    // ホール2: パー4の少し複雑なコース
+    {
+        par: 4,
+        teePosition: { x: 100, y: 400 },
+        holePosition: { x: 700, y: 150 },
+        hazards: [
+            { type: 'bunker', x: 350, y: 200, width: 80, height: 60 },
+            { type: 'water', x: 500, y: 350, width: 200, height: 50 },
+            { type: 'trees', x: 400, y: 100, radius: 40 }
+        ],
+        terrain: [
+            { type: 'rough', x: 300, y: 300, width: 300, height: 80 }
+        ]
+    },
+    // ホール3: パー5の難しいコース
+    {
+        par: 5,
+        teePosition: { x: 100, y: 100 },
+        holePosition: { x: 700, y: 400 },
+        hazards: [
+            { type: 'bunker', x: 200, y: 200, width: 80, height: 60 },
+            { type: 'bunker', x: 500, y: 300, width: 100, height: 60 },
+            { type: 'water', x: 350, y: 250, width: 100, height: 200 },
+            { type: 'trees', x: 600, y: 200, radius: 50 }
+        ],
+        terrain: [
+            { type: 'rough', x: 450, y: 150, width: 250, height: 70 },
+            { type: 'rough', x: 200, y: 350, width: 150, height: 60 }
+        ]
     }
+];
 
-    // 鳥の更新
-    update() {
-        // 重力と浮力を適用
-        this.vy += gravity;
-        this.vy -= buoyancy;
+// マウス座標
+let mouseX = 0;
+let mouseY = 0;
 
-        // 羽ばたき
-        if ((keys.ArrowUp || keys[" "]) && flapCooldown <= 0) {
-            this.vy -= flapForce;
-            flapCooldown = flapCooldownMax;
-
-            // 羽ばたき時のエフェクト
-            this.wingPosition = 0; // 羽ばたきリセット
-        }
-
-        // 左右移動
-        if (keys.ArrowLeft) {
-            this.vx -= 0.2;
-        }
-        if (keys.ArrowRight) {
-            this.vx += 0.2;
-        }
-
-        // 速度の制限
-        this.vx = Math.max(Math.min(this.vx, maxVelocity), -maxVelocity);
-        this.vy = Math.max(Math.min(this.vy, maxVelocity), -maxVelocity);
-
-        // 空気抵抗
-        this.vx *= airResistance;
-        this.vy *= airResistance;
-
-        // 位置の更新
-        this.x += this.vx;
-        this.y += this.vy;
-
-        // 画面の境界をチェック
-        if (this.x < this.width / 2) {
-            this.x = this.width / 2;
-            this.vx = 0;
-        } else if (this.x > canvas.width - this.width / 2) {
-            this.x = canvas.width - this.width / 2;
-            this.vx = 0;
-        }
-
-        // 地面の衝突
-        if (this.y > canvas.height - 50) {
-            gameOver = true;
-        }
-
-        // 上空の境界
-        if (this.y < this.height / 2) {
-            this.y = this.height / 2;
-            this.vy = 0;
-        }
-
-        // 鳥の回転角度を速度に基づいて計算
-        this.rotation = Math.atan2(this.vy, 3) * 0.5; // 少し抑えめに
-
-        // 羽ばたきのアニメーション
-        this.wingPosition += this.wingDirection;
-        if (this.wingPosition >= 1 || this.wingPosition <= 0) {
-            this.wingDirection *= -1;
-        }
-
-        // 衝突判定
-        this.checkCollisions();
-
-        // 距離の更新
-        distance += scrollSpeed / 10;
-    }
-
-    // 障害物との衝突判定
-    checkCollisions() {
-        for (const tree of trees) {
-            if (
-                this.x + this.width / 2 > tree.x - tree.width / 2 &&
-                this.x - this.width / 2 < tree.x + tree.width / 2 &&
-                this.y + this.height / 2 > tree.y - tree.height / 2 &&
-                this.y - this.height / 2 < tree.y + tree.height / 2
-            ) {
-                gameOver = true;
-                return;
-            }
-        }
-    }
-
-    // 鳥の描画
-    draw() {
-        ctx.save();
-
-        // 鳥の中心に移動して回転
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-
-        // 鳥の体（楕円）
-        ctx.fillStyle = "#FF9800"; // オレンジ
-        ctx.beginPath();
-        ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 鳥の頭
-        ctx.fillStyle = "#F57C00"; // 濃いオレンジ
-        ctx.beginPath();
-        ctx.arc(this.width / 3, -this.height / 6, this.height / 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 鳥のくちばし
-        ctx.fillStyle = "#FFD54F"; // 黄色
-        ctx.beginPath();
-        ctx.moveTo(this.width / 2, -this.height / 6);
-        ctx.lineTo(this.width / 2 + 15, 0);
-        ctx.lineTo(this.width / 2, this.height / 6);
-        ctx.closePath();
-        ctx.fill();
-
-        // 鳥の目
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.arc(this.width / 3 + 5, -this.height / 6, 3, 0, Math.PI * 2);
-        ctx.fill();
-
-        // 羽ばたき中の羽（位置に応じて変化）
-        ctx.fillStyle = "#E65100"; // 濃い茶色
-
-        // 左の羽
-        ctx.beginPath();
-        ctx.moveTo(-this.width / 4, 0);
-        ctx.quadraticCurveTo(-this.width / 2, -this.height * (0.5 + this.wingPosition * 0.8), // 羽ばたきでY位置変更
-            -this.width, -this.height * (0.2 + this.wingPosition * 0.5)
-        );
-        ctx.quadraticCurveTo(-this.width / 2,
-            this.height * 0.2, -this.width / 4,
-            0
-        );
-        ctx.closePath();
-        ctx.fill();
-
-        // 右の羽
-        ctx.beginPath();
-        ctx.moveTo(-this.width / 4, 0);
-        ctx.quadraticCurveTo(-this.width / 2,
-            this.height * (0.5 + this.wingPosition * 0.8), // 羽ばたきでY位置変更
-            -this.width,
-            this.height * (0.2 + this.wingPosition * 0.5)
-        );
-        ctx.quadraticCurveTo(-this.width / 2, -this.height * 0.2, -this.width / 4,
-            0
-        );
-        ctx.closePath();
-        ctx.fill();
-
-        // 尾羽
-        ctx.fillStyle = "#E65100"; // 濃い茶色
-        ctx.beginPath();
-        ctx.moveTo(-this.width / 2, 0);
-        ctx.lineTo(-this.width / 2 - 15, -this.height / 3);
-        ctx.lineTo(-this.width / 2 - 15, this.height / 3);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.restore();
-    }
-}
-
-// 雲のクラス
-class Cloud {
-    constructor(x) {
-        this.x = x || canvas.width + Math.random() * canvas.width;
-        this.y = Math.random() * (canvas.height / 2);
-        this.width = Math.random() * 100 + 50;
-        this.height = Math.random() * 40 + 20;
-        this.speed = Math.random() * 0.5 + 0.5; // 雲の移動速度はバラバラ
-    }
-
-    update() {
-        this.x -= this.speed * scrollSpeed;
-
-        // 画面外に出たら右側に再配置
-        if (this.x + this.width < 0) {
-            this.x = canvas.width + Math.random() * 100;
-            this.y = Math.random() * (canvas.height / 2);
-            this.width = Math.random() * 100 + 50;
-            this.height = Math.random() * 40 + 20;
-        }
-    }
-
-    draw() {
-        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-
-        // 複数の円で雲を表現
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.height, 0, Math.PI * 2);
-        ctx.arc(this.x + this.width * 0.3, this.y - this.height * 0.2, this.height * 0.9, 0, Math.PI * 2);
-        ctx.arc(this.x + this.width * 0.6, this.y, this.height * 1.1, 0, Math.PI * 2);
-        ctx.arc(this.x + this.width * 0.9, this.y - this.height * 0.1, this.height * 0.8, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
-// 木のクラス（障害物）
-class Tree {
-    constructor(x) {
-        this.x = x || canvas.width + Math.random() * 200;
-        this.y = canvas.height - 50; // 地面の高さ
-        this.width = Math.random() * 20 + 20;
-        this.height = Math.random() * 150 + 100;
-    }
-
-    update() {
-        this.x -= scrollSpeed;
-
-        // 画面外に出たら削除対象としてマーク
-        if (this.x + this.width < 0) {
-            return true; // 削除対象
-        }
-        return false;
-    }
-
-    draw() {
-        // 幹
-        ctx.fillStyle = "#8B4513"; // 茶色
-        ctx.beginPath();
-        ctx.rect(this.x - this.width / 4, this.y - this.height, this.width / 2, this.height);
-        ctx.fill();
-
-        // 葉
-        ctx.fillStyle = "#2E7D32"; // 緑
-        ctx.beginPath();
-        ctx.arc(this.x, this.y - this.height, this.width, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(this.x - this.width / 2, this.y - this.height - this.width / 3, this.width * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.arc(this.x + this.width / 2, this.y - this.height - this.width / 3, this.width * 0.7, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
-
-// 鳥のインスタンス
-let bird = new Bird();
-
-// ゲームの初期化
+// 初期化
 function initGame() {
-    gameOver = false;
-    distance = 0;
-    scrollSpeed = 2;
-    flapCooldown = 0;
-    bird = new Bird();
+    gameState.currentHole = 0;
+    gameState.totalScore = 0;
 
-    // 雲の初期化
-    clouds = [];
-    for (let i = 0; i < cloudCount; i++) {
-        clouds.push(new Cloud(Math.random() * canvas.width));
-    }
+    loadHole(gameState.currentHole);
 
-    // 木の初期化
-    trees = [];
-    for (let i = 0; i < 5; i++) {
-        trees.push(new Tree(canvas.width + i * treeSpacing));
-    }
+    // イベントリスナーの設定
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
 
-    // 表示の更新
-    if (distanceElement) {
-        distanceElement.textContent = `飛行距離: ${Math.floor(distance)} m`;
-    }
+    restartHoleButton.addEventListener('click', restartCurrentHole);
+    nextHoleButton.addEventListener('click', goToNextHole);
+    playAgainButton.addEventListener('click', restartGame);
 
-    if (gameOverElement) {
-        gameOverElement.style.display = 'none';
+    // ゲームループ開始
+    requestAnimationFrame(gameLoop);
+}
+
+// ホールをロード
+function loadHole(holeIndex) {
+    const hole = golfCourse[holeIndex];
+
+    // ホール情報の表示を更新
+    holeNumberElement.textContent = holeIndex + 1;
+    parElement.textContent = hole.par;
+
+    // ショット数をリセット
+    gameState.shots = 0;
+    shotsElement.textContent = gameState.shots;
+
+    // ボールをティーポジションに配置
+    ball.x = hole.teePosition.x;
+    ball.y = hole.teePosition.y;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.isMoving = false;
+
+    // ゲーム状態をリセット
+    gameState.ballInHole = false;
+    gameState.aiming = true;
+    gameState.shotReady = false;
+    gameState.powerCharging = false;
+    gameState.power = 0;
+
+    // 風の設定
+    updateWind();
+
+    // パワーバーをリセット
+    powerbarElement.style.width = '0%';
+
+    // 次のホールボタンを無効化
+    nextHoleButton.disabled = true;
+}
+
+// 風の更新
+function updateWind() {
+    // 風速（0-5の範囲）
+    gameState.windSpeed = Math.floor(Math.random() * 6);
+
+    // 風向き（0-359度）
+    gameState.windAngle = Math.floor(Math.random() * 360);
+
+    // 風の表示を更新
+    windSpeedElement.textContent = gameState.windSpeed;
+
+    // 風向きの矢印を更新
+    const arrowChars = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+    const arrowIndex = Math.floor(((gameState.windAngle + 22.5) % 360) / 45);
+    windDirectionElement.textContent = arrowChars[arrowIndex];
+}
+
+// マウス移動のハンドリング
+function handleMouseMove(event) {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = event.clientX - rect.left;
+    mouseY = event.clientY - rect.top;
+}
+
+// マウスダウンのハンドリング
+function handleMouseDown() {
+    if (ball.isMoving || gameState.ballInHole) return;
+
+    if (gameState.aiming) {
+        // パワーチャージ開始
+        gameState.powerCharging = true;
+        gameState.aiming = false;
+        gameState.power = 0;
+        gameState.powerDirection = 1;
+    } else if (gameState.powerCharging) {
+        // ショット実行
+        gameState.powerCharging = false;
+        gameState.shotReady = true;
     }
 }
 
-// 背景の描画
-function drawBackground() {
-    // 空のグラデーション
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, "#1E88E5"); // 上空
-    gradient.addColorStop(0.7, "#90CAF9"); // 中間
-    gradient.addColorStop(1, "#E3F2FD"); // 地平線
+// マウスアップのハンドリング
+function handleMouseUp() {
+    // この場合はクリックでハンドリングするので、ここでは何もしない
+}
 
-    ctx.fillStyle = gradient;
+// ホールをリスタート
+function restartCurrentHole() {
+    if (gameState.ballInHole) return;
+
+    loadHole(gameState.currentHole);
+}
+
+// 次のホールへ
+function goToNextHole() {
+    if (!gameState.ballInHole && !nextHoleButton.disabled) return;
+
+    gameState.currentHole++;
+
+    if (gameState.currentHole >= golfCourse.length) {
+        // ゲーム終了
+        endGame();
+    } else {
+        loadHole(gameState.currentHole);
+    }
+}
+
+// ゲームを再スタート
+function restartGame() {
+    gameOverElement.style.display = 'none';
+    initGame();
+}
+
+// ゲーム終了
+function endGame() {
+    gameOverElement.style.display = 'block';
+    finalScoreElement.textContent = gameState.totalScore;
+}
+
+// ショットを実行
+function executeShot() {
+    const hole = golfCourse[gameState.currentHole];
+
+    // 方向ベクトルを計算
+    const dx = mouseX - ball.x;
+    const dy = mouseY - ball.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // 正規化された方向ベクトル
+    const dirX = dx / distance;
+    const dirY = dy / distance;
+
+    // パワーに基づいて初速を設定
+    const powerFactor = gameState.power / 100;
+    ball.vx = dirX * maxPower * powerFactor;
+    ball.vy = dirY * maxPower * powerFactor;
+
+    // 風の影響を加える
+    const windFactor = gameState.windSpeed * 0.02;
+    const windRadians = gameState.windAngle * Math.PI / 180;
+    ball.vx += Math.cos(windRadians) * windFactor;
+    ball.vy += Math.sin(windRadians) * windFactor;
+
+    // ボールを動かす状態に
+    ball.isMoving = true;
+
+    // ショット数を増やす
+    gameState.shots++;
+    shotsElement.textContent = gameState.shots;
+
+    // 準備完了フラグをリセット
+    gameState.shotReady = false;
+
+    // エイミング状態に戻る
+    gameState.aiming = true;
+}
+
+// ボールの物理更新
+function updateBall() {
+    if (!ball.isMoving) return;
+
+    const hole = golfCourse[gameState.currentHole];
+
+    // 重力と空気抵抗を適用
+    ball.vy += gravity;
+    ball.vx *= airResistance;
+    ball.vy *= airResistance;
+
+    // 現在のホールの障害物や地形を考慮
+    checkHazards();
+
+    // 位置を更新
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // キャンバスの境界でのバウンド
+    if (ball.x - ball.radius < 0) {
+        ball.x = ball.radius;
+        ball.vx = -ball.vx * bounceDamping;
+    } else if (ball.x + ball.radius > canvas.width) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx = -ball.vx * bounceDamping;
+    }
+
+    if (ball.y - ball.radius < 0) {
+        ball.y = ball.radius;
+        ball.vy = -ball.vy * bounceDamping;
+    } else if (ball.y + ball.radius > canvas.height) {
+        ball.y = canvas.height - ball.radius;
+        ball.vy = -ball.vy * bounceDamping;
+
+        // 地面についたら摩擦を適用
+        ball.vx *= friction;
+    }
+
+    // ボールが止まったかチェック
+    const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+    if (speed < minStopVelocity) {
+        ball.isMoving = false;
+        ball.vx = 0;
+        ball.vy = 0;
+    }
+
+    // ホールインのチェック
+    checkHoleIn();
+}
+
+// 障害物や地形との相互作用
+function checkHazards() {
+    const hole = golfCourse[gameState.currentHole];
+
+    // 各障害物をチェック
+    for (const hazard of hole.hazards) {
+        switch (hazard.type) {
+            case 'bunker':
+                // バンカーに入ると速度が大幅に減少
+                if (isInRect(ball.x, ball.y, hazard.x, hazard.y, hazard.width, hazard.height)) {
+                    ball.vx *= 0.8;
+                    ball.vy *= 0.8;
+                }
+                break;
+
+            case 'water':
+                // 水に入るとペナルティ：前の位置に戻す
+                if (isInRect(ball.x, ball.y, hazard.x, hazard.y, hazard.width, hazard.height)) {
+                    ball.isMoving = false;
+                    ball.x = ball.x - ball.vx * 3; // 少し戻る
+                    ball.y = ball.y - ball.vy * 3;
+                    ball.vx = 0;
+                    ball.vy = 0;
+
+                    // ペナルティショット
+                    gameState.shots++;
+                    shotsElement.textContent = gameState.shots;
+                }
+                break;
+
+            case 'trees':
+                // 木にぶつかると跳ね返る
+                const dx = ball.x - hazard.x;
+                const dy = ball.y - hazard.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < hazard.radius + ball.radius) {
+                    // 木から跳ね返る方向を計算
+                    const angle = Math.atan2(dy, dx);
+
+                    // ボールを木の外側に移動
+                    ball.x = hazard.x + Math.cos(angle) * (hazard.radius + ball.radius);
+                    ball.y = hazard.y + Math.sin(angle) * (hazard.radius + ball.radius);
+
+                    // 速度を反射
+                    const dotProduct = ball.vx * Math.cos(angle) + ball.vy * Math.sin(angle);
+                    ball.vx -= 2 * dotProduct * Math.cos(angle) * bounceDamping;
+                    ball.vy -= 2 * dotProduct * Math.sin(angle) * bounceDamping;
+                }
+                break;
+        }
+    }
+
+    // 地形をチェック
+    for (const terrain of hole.terrain) {
+        if (terrain.type === 'rough' && isInRect(ball.x, ball.y, terrain.x, terrain.y, terrain.width, terrain.height)) {
+            // ラフでは速度が減少
+            ball.vx *= 0.95;
+            ball.vy *= 0.95;
+        }
+    }
+}
+
+// 矩形内にいるかチェック
+function isInRect(x, y, rectX, rectY, rectWidth, rectHeight) {
+    return x >= rectX && x <= rectX + rectWidth && y >= rectY && y <= rectY + rectHeight;
+}
+
+// ホールインのチェック
+function checkHoleIn() {
+    const hole = golfCourse[gameState.currentHole];
+
+    // ホールとボールの距離を計算
+    const dx = ball.x - hole.holePosition.x;
+    const dy = ball.y - hole.holePosition.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // ホールの半径を設定（ボールよりやや大きい）
+    const holeRadius = 10;
+
+    if (distance < holeRadius) {
+        // ボールがホールに入った
+        gameState.ballInHole = true;
+        ball.isMoving = false;
+
+        // スコアの更新
+        const holePar = hole.par;
+        const relativeScore = gameState.shots - holePar;
+        gameState.totalScore += relativeScore;
+        totalScoreElement.textContent = getScoreString(gameState.totalScore);
+
+        // スコア表示
+        let scoreText;
+        if (gameState.shots === 1) {
+            scoreText = "ホールインワン！";
+        } else if (relativeScore === -2) {
+            scoreText = "イーグル！";
+        } else if (relativeScore === -1) {
+            scoreText = "バーディー！";
+        } else if (relativeScore === 0) {
+            scoreText = "パー";
+        } else if (relativeScore === 1) {
+            scoreText = "ボギー";
+        } else if (relativeScore === 2) {
+            scoreText = "ダブルボギー";
+        } else if (relativeScore > 2) {
+            scoreText = relativeScore + "オーバー";
+        }
+
+        // 得点表示のアニメーション（単純なアラートで代用）
+        alert(`${scoreText}\nショット数: ${gameState.shots}`);
+
+        // 次のホールボタンを有効化
+        nextHoleButton.disabled = false;
+    }
+}
+
+// スコア文字列を取得
+function getScoreString(score) {
+    if (score === 0) return "イーブン";
+    if (score > 0) return `+${score}`;
+    return score.toString();
+}
+
+// パワーバーの更新
+function updatePowerBar() {
+    if (!gameState.powerCharging) return;
+
+    // パワーを更新
+    gameState.power += gameState.powerDirection * 2;
+
+    // パワーの上限・下限を設定
+    if (gameState.power >= 100) {
+        gameState.power = 100;
+        gameState.powerDirection = -1;
+    } else if (gameState.power <= 0) {
+        gameState.power = 0;
+        gameState.powerDirection = 1;
+    }
+
+    // パワーバーの表示を更新
+    powerbarElement.style.width = `${gameState.power}%`;
+}
+
+// ゲームの描画
+function drawGame() {
+    // 背景をクリア
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // コースを描画
+    drawCourse();
+
+    // ボールを描画
+    drawBall();
+
+    // エイミングラインを描画
+    if (gameState.aiming && !ball.isMoving && !gameState.ballInHole) {
+        drawAimingLine();
+    }
+}
+
+// コースの描画
+function drawCourse() {
+    const hole = golfCourse[gameState.currentHole];
+
+    // グリーンを描画
+    ctx.fillStyle = '#90ee90'; // 薄緑色
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 太陽
-    ctx.fillStyle = "#FFEB3B";
+    // ホールを描画
+    ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(canvas.width - 100, 80, 40, 0, Math.PI * 2);
+    ctx.arc(hole.holePosition.x, hole.holePosition.y, 10, 0, Math.PI * 2);
     ctx.fill();
 
-    // 山脈
-    ctx.fillStyle = "#4CAF50";
+    // ホールフラッグを描画
+    ctx.fillStyle = '#ff0000';
+    ctx.fillRect(hole.holePosition.x, hole.holePosition.y - 40, 2, 40);
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 50);
-    for (let x = 0; x <= canvas.width; x += 30) {
-        const height = Math.sin(x * 0.01 + distance * 0.05) * 20 + Math.sin(x * 0.02 + distance * 0.03) * 10 + 30;
-        ctx.lineTo(x, canvas.height - 50 - height);
+    ctx.moveTo(hole.holePosition.x, hole.holePosition.y - 40);
+    ctx.lineTo(hole.holePosition.x + 15, hole.holePosition.y - 35);
+    ctx.lineTo(hole.holePosition.x, hole.holePosition.y - 30);
+    ctx.fill();
+
+    // 障害物を描画
+    for (const hazard of hole.hazards) {
+        switch (hazard.type) {
+            case 'bunker':
+                ctx.fillStyle = '#f5deb3'; // バンカー色
+                ctx.beginPath();
+                ctx.ellipse(
+                    hazard.x + hazard.width / 2,
+                    hazard.y + hazard.height / 2,
+                    hazard.width / 2,
+                    hazard.height / 2,
+                    0, 0, Math.PI * 2
+                );
+                ctx.fill();
+                break;
+
+            case 'water':
+                ctx.fillStyle = '#4682b4'; // 水色
+                ctx.fillRect(hazard.x, hazard.y, hazard.width, hazard.height);
+                break;
+
+            case 'trees':
+                // 木の幹
+                ctx.fillStyle = '#8b4513'; // 茶色
+                ctx.fillRect(hazard.x - 5, hazard.y - hazard.radius / 2, 10, hazard.radius);
+
+                // 木の葉
+                ctx.fillStyle = '#228b22'; // 緑色
+                ctx.beginPath();
+                ctx.arc(hazard.x, hazard.y - hazard.radius / 2, hazard.radius / 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                break;
+        }
     }
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.lineTo(0, canvas.height);
-    ctx.closePath();
+
+    // 地形を描画
+    for (const terrain of hole.terrain) {
+        if (terrain.type === 'rough') {
+            ctx.fillStyle = '#a0db8e'; // ラフ色
+            ctx.fillRect(terrain.x, terrain.y, terrain.width, terrain.height);
+        }
+    }
+}
+
+// ボールの描画
+function drawBall() {
+    ctx.fillStyle = ball.color;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    // 地面
-    ctx.fillStyle = "#8D6E63"; // 茶色
-    ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+    // ボールのハイライト
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.beginPath();
+    ctx.arc(ball.x - ball.radius / 3, ball.y - ball.radius / 3, ball.radius / 3, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// エイミングラインの描画
+function drawAimingLine() {
+    const dx = mouseX - ball.x;
+    const dy = mouseY - ball.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // 正規化された方向ベクトル
+    const dirX = dx / distance;
+    const dirY = dy / distance;
+
+    // エイミングラインの長さ
+    const lineLength = Math.min(distance, 100);
+
+    // 点線の描画
+    ctx.beginPath();
+    ctx.setLineDash([5, 5]); // 点線のパターン
+    ctx.moveTo(ball.x, ball.y);
+    ctx.lineTo(ball.x + dirX * lineLength, ball.y + dirY * lineLength);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.setLineDash([]); // 点線をリセット
 }
 
 // ゲームループ
 function gameLoop() {
-    // 背景のクリア
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // パワーバーの更新
+    updatePowerBar();
 
-    // 背景の描画
-    drawBackground();
-
-    // クールダウンの更新
-    if (flapCooldown > 0) {
-        flapCooldown--;
+    // ショットの実行
+    if (gameState.shotReady) {
+        executeShot();
     }
 
-    // 雲の更新と描画
-    for (const cloud of clouds) {
-        cloud.update();
-        cloud.draw();
-    }
+    // ボールの更新
+    updateBall();
 
-    // ゲームオーバーでなければ更新
-    if (!gameOver) {
-        // 木の更新と描画
-        trees = trees.filter(tree => !tree.update()); // 画面外に出た木を削除
-        for (const tree of trees) {
-            tree.draw();
-        }
-
-        // 新しい木を追加
-        if (trees.length < 5) {
-            trees.push(new Tree(canvas.width + Math.random() * 200));
-        }
-
-        // 鳥の更新
-        bird.update();
-
-        // 難易度の増加
-        if (distance > 100) {
-            scrollSpeed = 2 + distance / 500; // 徐々に速くなる
-        }
-    }
-
-    // 鳥の描画
-    bird.draw();
-
-    // 走行距離の表示更新
-    if (distanceElement) {
-        distanceElement.textContent = `飛行距離: ${Math.floor(distance)} m`;
-    }
-
-    // ゲームオーバーメッセージ
-    if (gameOver && gameOverElement) {
-        gameOverElement.style.display = 'block';
-
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '36px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('ゲームオーバー!', canvas.width / 2, canvas.height / 2 - 40);
-
-        ctx.font = '24px Arial';
-        ctx.fillText(`飛行距離: ${Math.floor(distance)} m`, canvas.width / 2, canvas.height / 2);
-
-        // ベストスコアの更新
-        if (distance > bestDistance) {
-            bestDistance = distance;
-        }
-
-        ctx.fillText(`ベスト: ${Math.floor(bestDistance)} m`, canvas.width / 2, canvas.height / 2 + 30);
-        ctx.restore();
-    }
+    // ゲームの描画
+    drawGame();
 
     // 次のフレームをリクエスト
     requestAnimationFrame(gameLoop);
 }
 
-// キーボード入力の処理
-document.addEventListener('keydown', (event) => {
-    if (event.key in keys) {
-        keys[event.key] = true;
-    }
-});
-
-document.addEventListener('keyup', (event) => {
-    if (event.key in keys) {
-        keys[event.key] = false;
-    }
-});
-
-// リスタートボタン
-if (restartButton) {
-    restartButton.addEventListener('click', () => {
-        initGame();
-    });
-}
-
-// タッチスクリーンのサポート
-canvas.addEventListener('touchstart', () => {
-    keys[" "] = true;
-});
-
-canvas.addEventListener('touchend', () => {
-    keys[" "] = false;
-});
-
 // ゲーム開始
 initGame();
-requestAnimationFrame(gameLoop);
