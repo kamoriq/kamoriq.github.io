@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QWOP風物理歩行ゲーム</title>
+    <title>羽ばたき飛行ゲーム</title>
     <style>
         body {
             margin: 0;
@@ -12,38 +12,48 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #f0f0f0;
+            background-color: #87CEEB;
+            /* 空色の背景 */
             font-family: Arial, sans-serif;
+            color: #333;
         }
         
         canvas {
             border: 2px solid #333;
-            background-color: #fff;
+            border-radius: 8px;
             margin-top: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
         
         .controls {
             margin-top: 20px;
-            background-color: #eee;
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
             text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
         }
         
         .key {
             display: inline-block;
-            background-color: #333;
+            background-color: #4CAF50;
             color: white;
-            padding: 5px 10px;
+            padding: 5px 15px;
             margin: 0 5px;
             border-radius: 5px;
             font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         #distance {
             font-size: 24px;
             margin-top: 10px;
             font-weight: bold;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         #game-over {
@@ -53,7 +63,11 @@
             transform: translate(-50%, -50%);
             font-size: 48px;
             color: #FF5252;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 10px;
             display: none;
+            text-align: center;
         }
         
         #restart {
@@ -65,28 +79,36 @@
             font-size: 16px;
             cursor: pointer;
             margin-top: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
         }
         
         #restart:hover {
             background-color: #45a049;
         }
+        
+        h1 {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
 <body>
-    <h1>QWOP風物理歩行ゲーム</h1>
-    <div id="distance">走行距離: 0 m</div>
-    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <h1>羽ばたき飛行ゲーム</h1>
+    <div id="distance">飛行距離: 0 m</div>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
     <div id="game-over">ゲームオーバー！</div>
     <div class="controls">
         <p>
-            <span class="key">Q</span> 左腿前方 |
-            <span class="key">W</span> 右腿前方 |
-            <span class="key">O</span> 左足前方 |
-            <span class="key">P</span> 右足前方
+            <span class="key">スペース</span> または <span class="key">↑</span> 羽ばたく |
+            <span class="key">←</span> 左に移動 |
+            <span class="key">→</span> 右に移動
         </p>
         <p>
-            すべての筋肉をうまく調整して、できるだけ遠くまで走りましょう！
+            タイミングよく羽ばたいて、できるだけ遠くまで飛びましょう！ 障害物を避けながら、高度を維持してください。
         </p>
     </div>
     <button id="restart">リスタート</button>
