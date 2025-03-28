@@ -85,7 +85,7 @@
     <div id="canvas-container"></div>
     <div id="game-info">
         <div>スコア: <span id="score">0</span></div>
-        <div>残りボール: <span id="balls-left">5</span></div>
+        <div>残りボール: <span id="balls-left">10</span></div>
         <div>ステータス: <span id="status">ブロックを倒そう!</span></div>
     </div>
     <button id="reset-btn">リセット</button>
@@ -111,7 +111,7 @@
 
         // ゲーム状態
         let score = 0;
-        let ballsLeft = 5;
+        let ballsLeft = 10;
         let targetBlock = null;
         let platform = null;
         let isGameOver = false;
@@ -448,8 +448,8 @@
 
             // ベクトルの計算
             const force = Vector.create(
-                Math.cos(launchAngle) * launchPower * 0.4,
-                Math.sin(launchAngle) * launchPower * 0.4
+                Math.cos(launchAngle) * launchPower * 0.2,
+                Math.sin(launchAngle) * launchPower * 0.2
             );
 
             // 力を加える
@@ -525,7 +525,7 @@
 
             // 最終スコア更新
             document.getElementById('final-score').textContent = score;
-            document.getElementById('balls-used').textContent = 5 - ballsLeft;
+            document.getElementById('balls-used').textContent = 10 - ballsLeft;
 
             // クリア画面表示
             const levelComplete = document.getElementById('level-complete');
@@ -780,5 +780,6 @@
 ~Log~
 ステ３：グラ
 ステ２：グラ
+ゲーム性について考える必要がある
 空中にある玉同士をぶつけた時の挙動を入れる
 -->
