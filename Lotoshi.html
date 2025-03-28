@@ -88,9 +88,6 @@
         <div>残りボール: <span id="balls-left">5</span></div>
         <div>ステータス: <span id="status">ブロックを倒そう!</span></div>
     </div>
-    <div id="instructions">
-        ⚪ 発射台からボールを発射して、台の上の大きな立方体を倒しましょう<br> ⚪ マウスを動かして狙い、クリックで発射します<br> ⚪ 立方体を倒すか、ボールがなくなるとゲーム終了<br> ⚪ スペースキーでも発射できます<br> ⚪ 少ないボールで倒すほど高得点になります
-    </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
         <h2>クリア！</h2>
@@ -119,12 +116,14 @@
         let platform = null;
         let isGameOver = false;
         let ballPosition = null;
-        let aiming = false;
         let launchAngle = 0;
         let launchPower = 0.2;
         let blockFallen = false;
         let textureChanged = false; // テクスチャが変更されたかどうかのフラグ
         let textureTimer = null; // テクスチャを元に戻すためのタイマー
+        // 最後のマウス位置を追跡するための変数を追加
+        let lastMouseX = 0;
+        let lastMouseY = 0;
 
         // エンジンを作成
         const engine = Engine.create();
@@ -235,7 +234,7 @@
             targetBlock = Bodies.rectangle(x, y - (height / 2), width, height, {
                 restitution: 0.2, // 反発係数
                 friction: 0.1, // 摩擦
-                density: 0.1, // 密度
+                density: 0.01, // 密度を5倍に増加（0.002→0.01）
                 render: {
                     sprite: {
                         texture: 'stage1.png',
@@ -426,10 +425,6 @@
             const tempBall = document.getElementById('temp-ball');
             if (tempBall) tempBall.remove();
 
-            // 矢印を削除
-            const arrow = document.getElementById('aim-arrow-svg');
-            if (arrow) arrow.remove();
-
             // 球を作成
             const ball = Bodies.circle(
                 ballPosition.x,
@@ -453,8 +448,8 @@
 
             // ベクトルの計算
             const force = Vector.create(
-                Math.cos(launchAngle) * launchPower,
-                Math.sin(launchAngle) * launchPower
+                Math.cos(launchAngle) * launchPower * 0.4,
+                Math.sin(launchAngle) * launchPower * 0.4
             );
 
             // 力を加える
@@ -572,7 +567,7 @@
 
             // スコアと残りボールをリセット
             score = 0;
-            ballsLeft = 5;
+            ballsLeft = 10;
             isGameOver = false;
             blockFallen = false;
             textureChanged = false; // テクスチャ変更フラグもリセット
@@ -607,38 +602,68 @@
             resetBallPosition();
         }
 
-        // マウスクリックでボールを発射
+        // マウスクリックでボールを直接発射
         render.canvas.addEventListener('click', function(event) {
             if (isGameOver) return;
 
-            if (aiming) {
-                launchBall();
-                aiming = false;
-            } else {
-                aiming = true;
+            // マウス座標の取得
+            const rect = render.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
 
-                // 初回のみボールの位置をセット
+            // ボールの位置をセット（まだセットされていない場合）
+            if (!ballPosition) {
+                resetBallPosition();
+            }
+
+            // ボールからマウスへの方向ベクトルを計算
+            const dx = mouseX - ballPosition.x;
+            const dy = mouseY - ballPosition.y;
+
+            // 角度を計算
+            launchAngle = Math.atan2(dy, dx);
+
+            // 距離に基づいてパワーを計算（最小と最大の範囲内に制限）
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            launchPower = Math.min(Math.max(distance / 300, 0.05), 0.3);
+
+            // ボールを発射
+            launchBall();
+        });
+
+        // マウス移動で矢印を常に更新（ボールの位置が設定されていれば）
+        render.canvas.addEventListener('mousemove', function(event) {
+            // マウス位置を常に記録
+            const rect = render.canvas.getBoundingClientRect();
+            lastMouseX = event.clientX - rect.left;
+            lastMouseY = event.clientY - rect.top;
+
+            if (ballPosition) {
+                updateLauncherArrow(event);
+            }
+        });
+
+        // スペースキーでも発射できるように（最終版）
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && !isGameOver && ballPosition) {
+                // ボールの位置をセット（まだセットされていない場合）
                 if (!ballPosition) {
                     resetBallPosition();
                 }
 
-                // 矢印更新イベントをトリガー
-                updateLauncherArrow(event);
-            }
-        });
+                // 記録したマウス位置を使用してベクトルを計算
+                const dx = lastMouseX - ballPosition.x;
+                const dy = lastMouseY - ballPosition.y;
 
-        // マウス移動で矢印を更新
-        render.canvas.addEventListener('mousemove', function(event) {
-            if (aiming) {
-                updateLauncherArrow(event);
-            }
-        });
+                // 角度を計算
+                launchAngle = Math.atan2(dy, dx);
 
-        // スペースキーでも発射できるように
-        document.addEventListener('keydown', function(event) {
-            if (event.code === 'Space' && aiming) {
+                // 距離に基づいてパワーを計算（最小と最大の範囲内に制限）
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                launchPower = Math.min(Math.max(distance / 300, 0.05), 0.3);
+
+                // ボールを発射
                 launchBall();
-                aiming = false;
             }
         });
 
@@ -692,7 +717,7 @@
                                 textureChanged = false; // テクスチャ変更フラグをリセット
                                 console.log("テクスチャを stage1.png に戻しました");
                             }
-                        }, 500); // 2秒後に元に戻す
+                        }, 2000); // 2秒後に元に戻す
 
                         break;
                     }
@@ -750,3 +775,10 @@
 </body>
 
 </html>
+
+<!-- 
+~Log~
+ステ３：グラ
+ステ２：グラ
+空中にある玉同士をぶつけた時の挙動を入れる
+-->
