@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物理演算射的ゲーム - 横長ステージ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            /* 空色の背景 */
+            font-family: Arial, sans-serif;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100vh;
+        }
+        
+        #game-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+        
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 400px;
+            line-height: 1.5;
+            z-index: 100;
+        }
+        
+        #reset-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+        
+        #reset-btn:hover {
+            background-color: #e74c3c;
+        }
+        
+        #level-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            font-size: 24px;
+            text-align: center;
+            display: none;
+            z-index: 200;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="canvas-container"></div>
+    <div id="game-info">
+        <div>スコア: <span id="score">0</span></div>
+        <div>残りボール: <span id="balls-left">5</span></div>
+        <div>ステータス: <span id="status">ブロックを倒そう!</span></div>
+    </div>
+    <div id="instructions">
+        ⚪ 発射台からボールを発射して、台の上の大きな立方体を倒しましょう<br> ⚪ マウスを動かして狙い、クリックで発射します<br> ⚪ 立方体を倒すか、ボールがなくなるとゲーム終了<br> ⚪ スペースキーでも発射できます<br> ⚪ 少ないボールで倒すほど高得点になります
+    </div>
+    <button id="reset-btn">リセット</button>
+    <div id="level-complete">
+        <h2>クリア！</h2>
+        <p>おめでとうございます！</p>
+        <p>スコア: <span id="final-score">0</span></p>
+        <p>使用ボール数: <span id="balls-used">0</span></p>
+        <button id="next-btn">もう一度プレイ</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <script>
+        // Matter.jsのモジュール
+        const Engine = Matter.Engine;
+        const Render = Matter.Render;
+        const Runner = Matter.Runner;
+        const Bodies = Matter.Bodies;
+        const Composite = Matter.Composite;
+        const Body = Matter.Body;
+        const Events = Matter.Events;
+        const Vector = Matter.Vector;
+
+        // ゲーム状態
+        let score = 0;
+        let ballsLeft = 5;
+        let targetBlock = null;
+        let platform = null;
+        let isGameOver = false;
+        let ballPosition = null;
+        let aiming = false;
+        let launchAngle = 0;
+        let launchPower = 0.2;
+        let blockFallen = false;
+        let textureChanged = false; // テクスチャが変更されたかどうかのフラグ
+        let textureTimer = null; // テクスチャを元に戻すためのタイマー
+
+        // エンジンを作成
+        const engine = Engine.create();
+        engine.world.gravity.y = 1; // 重力を設定
+
+        // レンダラーを作成
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                wireframes: false,
+                background: '#87CEEB', // 空色の背景
+                showAngleIndicator: false,
+                showCollisions: false,
+                showVelocity: false
+            }
+        });
+
+        // ランナーを作成
+        const runner = Runner.create();
+
+        // 色リスト
+        const colors = [
+            '#F94144', '#F3722C', '#F8961E', '#F9C74F',
+            '#90BE6D', '#43AA8B', '#577590', '#277DA1'
+        ];
+
+        // ランダムな色を取得
+        function getRandomColor() {
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // 壁と地面を作成
+        const ground = Bodies.rectangle(
+            window.innerWidth / 2,
+            window.innerHeight,
+            window.innerWidth * 3, // 横長に拡張
+            50, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#663300' // 茶色の地面
+                },
+                label: "ground"
+            }
+        );
+
+        const ceiling = Bodies.rectangle(
+            window.innerWidth / 2,
+            0,
+            window.innerWidth * 3, // 横長に拡張
+            50, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                },
+                label: "ceiling"
+            }
+        );
+
+        const leftWall = Bodies.rectangle(-window.innerWidth / 2,
+            window.innerHeight / 2,
+            50,
+            window.innerHeight, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                },
+                label: "wall"
+            }
+        );
+
+        const rightWall = Bodies.rectangle(
+            window.innerWidth * 1.5,
+            window.innerHeight / 2,
+            50,
+            window.innerHeight, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                },
+                label: "wall"
+            }
+        );
+
+        // 世界に壁を追加
+        Composite.add(engine.world, [ground, ceiling, leftWall, rightWall]);
+
+        // 台座を作成する関数
+        function createPlatform(x, y, width, height) {
+            platform = Bodies.rectangle(x, y, width, height, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#8D6E63', // 茶色の台
+                    strokeStyle: '#5D4037',
+                    lineWidth: 2
+                },
+                label: "platform"
+            });
+
+            Composite.add(engine.world, platform);
+            return platform;
+        }
+
+        // 倒すブロックを作成する関数
+        function createTargetBlock(x, y, width, height) {
+            targetBlock = Bodies.rectangle(x, y - (height / 2), width, height, {
+                restitution: 0.2, // 反発係数
+                friction: 0.1, // 摩擦
+                density: 0.1, // 密度
+                render: {
+                    sprite: {
+                        texture: 'stage1.png',
+                        xScale: 0.2,
+                        yScale: 0.2
+                    }
+                },
+                label: "targetBlock"
+            });
+
+            Composite.add(engine.world, targetBlock);
+            return targetBlock;
+        }
+
+        // 発射台を作成
+        const launcher = Bodies.rectangle(
+            window.innerWidth * 0.1, // 左側に配置
+            window.innerHeight - 80,
+            100,
+            20, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#555555',
+                    strokeStyle: '#222222',
+                    lineWidth: 2
+                },
+                label: "launcher"
+            }
+        );
+
+        Composite.add(engine.world, launcher);
+
+        // シンプルなカメラ
+        function setupCamera() {
+            // レンダラーのバウンズを設定して表示領域を変更
+            Matter.Render.lookAt(render, {
+                min: {
+                    x: 0,
+                    y: 0
+                },
+                max: {
+                    x: window.innerWidth,
+                    y: window.innerHeight
+                }
+            });
+        }
+
+        // レベル（台座と立方体）を設定
+        function setupLevel() {
+            // 台座を右側に配置
+            const platformX = window.innerWidth * 0.7;
+            const platformY = window.innerHeight * 0.7;
+            const platformWidth = 200;
+            const platformHeight = 30;
+
+            createPlatform(platformX, platformY, platformWidth, platformHeight);
+
+            // 大きな立方体を台座の上に配置
+            const blockWidth = 60;
+            const blockHeight = 200;
+            createTargetBlock(platformX, platformY - platformHeight / 2 - blockHeight / 2, blockWidth, blockHeight);
+
+            // 若干回転を加えて不安定にする（面白さのため）
+            Body.rotate(targetBlock, 0.05);
+
+            blockFallen = false;
+
+            // カメラを設定
+            setupCamera();
+        }
+
+        // 仮のボールを描画
+        function renderTempBall() {
+            // 既存の仮ボールを削除
+            const existingBall = document.getElementById('temp-ball');
+            if (existingBall) existingBall.remove();
+
+            if (!ballPosition) return;
+
+            // 新しい仮ボールを作成
+            const tempBall = document.createElement('div');
+            tempBall.id = 'temp-ball';
+            tempBall.style.position = 'absolute';
+            tempBall.style.width = '30px';
+            tempBall.style.height = '30px';
+            tempBall.style.borderRadius = '50%';
+            tempBall.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+            tempBall.style.left = (ballPosition.x - 15) + 'px';
+            tempBall.style.top = (ballPosition.y - 15) + 'px';
+            document.body.appendChild(tempBall);
+        }
+
+        // 発射装置の矢印を更新
+        function updateLauncherArrow(event) {
+            // ボールが配置されていない場合は何もしない
+            if (!ballPosition) return;
+
+            // マウス座標の取得
+            const rect = render.canvas.getBoundingClientRect();
+            const mouseX = event.clientX - rect.left;
+            const mouseY = event.clientY - rect.top;
+
+            // ボールからマウスへのベクトル
+            const dx = mouseX - ballPosition.x;
+            const dy = mouseY - ballPosition.y;
+
+            // 角度を計算（ラジアン）
+            const angle = Math.atan2(dy, dx);
+
+            // 角度を度に変換して保存
+            launchAngle = angle;
+
+            // ベクトルの長さに基づいてパワーを調整
+            const length = Math.sqrt(dx * dx + dy * dy);
+            launchPower = Math.min(Math.max(length / 300, 0.05), 0.3);
+
+            // 既存のSVG矢印を削除
+            const existingArrow = document.getElementById('aim-arrow-svg');
+            if (existingArrow) {
+                existingArrow.remove();
+            }
+
+            // SVG矢印を作成
+            const svgContainer = document.createElement('div');
+            svgContainer.id = 'aim-arrow-svg';
+            svgContainer.style.position = 'absolute';
+            svgContainer.style.top = '0';
+            svgContainer.style.left = '0';
+            svgContainer.style.width = '100%';
+            svgContainer.style.height = '100%';
+            svgContainer.style.pointerEvents = 'none';
+            svgContainer.style.zIndex = '1000';
+
+            // SVG要素を作成
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+
+            // マーカー（矢印の先端）を定義
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '9');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+            polygon.setAttribute('fill', 'red');
+
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+
+            // 矢印の長さ
+            const arrowLength = 30 + launchPower * 200;
+
+            // 正規化されたベクトル
+            const normalizedDx = dx / (length || 1); // 0除算防止
+            const normalizedDy = dy / (length || 1);
+
+            // 矢印の終点
+            const endX = ballPosition.x + normalizedDx * arrowLength;
+            const endY = ballPosition.y + normalizedDy * arrowLength;
+
+            // 線を作成
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', ballPosition.x);
+            line.setAttribute('y1', ballPosition.y);
+            line.setAttribute('x2', endX);
+            line.setAttribute('y2', endY);
+            line.setAttribute('stroke', 'red');
+            line.setAttribute('stroke-width', '3');
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+
+            svg.appendChild(line);
+            svgContainer.appendChild(svg);
+            document.body.appendChild(svgContainer);
+        }
+
+        // ボールを発射する
+        function launchBall() {
+            if (!ballPosition || ballsLeft <= 0 || isGameOver) return;
+
+            // 仮ボールを削除
+            const tempBall = document.getElementById('temp-ball');
+            if (tempBall) tempBall.remove();
+
+            // 矢印を削除
+            const arrow = document.getElementById('aim-arrow-svg');
+            if (arrow) arrow.remove();
+
+            // 球を作成
+            const ball = Bodies.circle(
+                ballPosition.x,
+                ballPosition.y,
+                15, // 半径
+                {
+                    restitution: 0.8, // 反発係数
+                    friction: 0.05, // 摩擦
+                    density: 0.002, // 密度
+                    render: {
+                        fillStyle: '#ff0000', // 赤色
+                        strokeStyle: '#880000',
+                        lineWidth: 2
+                    },
+                    label: "ball"
+                }
+            );
+
+            // 世界に追加
+            Composite.add(engine.world, ball);
+
+            // ベクトルの計算
+            const force = Vector.create(
+                Math.cos(launchAngle) * launchPower,
+                Math.sin(launchAngle) * launchPower
+            );
+
+            // 力を加える
+            Body.applyForce(ball, ball.position, force);
+
+            // ボールを減らす
+            ballsLeft--;
+            document.getElementById('balls-left').textContent = ballsLeft;
+
+            // ボールの位置をリセット
+            resetBallPosition();
+
+            // ボールがなくなったらゲームオーバーチェック
+            if (ballsLeft <= 0 && !blockFallen) {
+                setTimeout(checkGameOver, 3000); // 3秒後にゲームオーバーチェック
+            }
+        }
+
+        // ボールの位置をリセット
+        function resetBallPosition() {
+            ballPosition = {
+                x: launcher.position.x,
+                y: launcher.position.y - 30
+            };
+            renderTempBall();
+        }
+
+        // ブロックが倒れたかチェック
+        function checkBlockStatus() {
+            if (!targetBlock || blockFallen) return;
+
+            // ブロックの傾きをチェック（垂直から30度以上傾いていれば倒れたとみなす）
+            const angle = targetBlock.angle % (Math.PI * 2);
+            const absoluteAngle = Math.min(
+                Math.abs(angle),
+                Math.abs(angle - Math.PI),
+                Math.abs(angle - Math.PI * 2)
+            );
+
+            // ブロックの位置もチェック（台から落ちたか）
+            const blockFellOff = targetBlock.position.y > window.innerHeight - 30 ||
+                Math.abs(targetBlock.position.x - platform.position.x) > 150;
+
+            if (absoluteAngle > Math.PI / 6 || blockFellOff) { // 30度以上傾いたか、台から落ちた
+                blockFallen = true;
+
+                // スコア計算（残りボール数に応じてボーナス）
+                const baseScore = 1000;
+                const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
+                score = baseScore + bonusScore;
+
+                document.getElementById('score').textContent = score;
+                document.getElementById('status').textContent = "ブロック倒れた！";
+
+                // ゲームクリア
+                setTimeout(gameWin, 1500);
+            }
+        }
+
+        // ゲームオーバーチェック
+        function checkGameOver() {
+            if (ballsLeft <= 0 && !blockFallen) {
+                isGameOver = true;
+                showGameOverMessage("ゲームオーバー！もう一度挑戦しよう！");
+            }
+        }
+
+        // ゲームクリア
+        function gameWin() {
+            if (isGameOver) return;
+
+            isGameOver = true;
+
+            // 最終スコア更新
+            document.getElementById('final-score').textContent = score;
+            document.getElementById('balls-used').textContent = 5 - ballsLeft;
+
+            // クリア画面表示
+            const levelComplete = document.getElementById('level-complete');
+            levelComplete.style.display = 'block';
+        }
+
+        // ゲームオーバーメッセージを表示
+        function showGameOverMessage(message) {
+            const gameOverDiv = document.createElement('div');
+            gameOverDiv.id = 'game-over';
+            gameOverDiv.style.position = 'absolute';
+            gameOverDiv.style.top = '50%';
+            gameOverDiv.style.left = '50%';
+            gameOverDiv.style.transform = 'translate(-50%, -50%)';
+            gameOverDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            gameOverDiv.style.color = 'white';
+            gameOverDiv.style.padding = '30px';
+            gameOverDiv.style.borderRadius = '15px';
+            gameOverDiv.style.fontSize = '24px';
+            gameOverDiv.style.textAlign = 'center';
+            gameOverDiv.style.zIndex = '2000';
+            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">もう一度プレイ</button>';
+
+            document.body.appendChild(gameOverDiv);
+
+            document.getElementById('restart-btn').addEventListener('click', function() {
+                resetGame();
+                gameOverDiv.remove();
+            });
+        }
+
+        // ゲームをリセット
+        function resetGame() {
+            // タイマーをクリア
+            if (textureTimer) {
+                clearTimeout(textureTimer);
+                textureTimer = null;
+            }
+
+            // スコアと残りボールをリセット
+            score = 0;
+            ballsLeft = 5;
+            isGameOver = false;
+            blockFallen = false;
+            textureChanged = false; // テクスチャ変更フラグもリセット
+            document.getElementById('score').textContent = score;
+            document.getElementById('balls-left').textContent = ballsLeft;
+            document.getElementById('status').textContent = "ブロックを倒そう!";
+
+            // クリア画面を非表示に
+            document.getElementById('level-complete').style.display = 'none';
+
+            // 矢印と仮ボールを削除
+            const arrow = document.getElementById('aim-arrow-svg');
+            if (arrow) arrow.remove();
+            const tempBall = document.getElementById('temp-ball');
+            if (tempBall) tempBall.remove();
+
+            // 既存のターゲットブロックと台座を削除
+            if (targetBlock) {
+                Composite.remove(engine.world, targetBlock);
+                targetBlock = null;
+            }
+
+            if (platform) {
+                Composite.remove(engine.world, platform);
+                platform = null;
+            }
+
+            // 新しいレベルを設定
+            setupLevel();
+
+            // ボールの位置をリセット
+            resetBallPosition();
+        }
+
+        // マウスクリックでボールを発射
+        render.canvas.addEventListener('click', function(event) {
+            if (isGameOver) return;
+
+            if (aiming) {
+                launchBall();
+                aiming = false;
+            } else {
+                aiming = true;
+
+                // 初回のみボールの位置をセット
+                if (!ballPosition) {
+                    resetBallPosition();
+                }
+
+                // 矢印更新イベントをトリガー
+                updateLauncherArrow(event);
+            }
+        });
+
+        // マウス移動で矢印を更新
+        render.canvas.addEventListener('mousemove', function(event) {
+            if (aiming) {
+                updateLauncherArrow(event);
+            }
+        });
+
+        // スペースキーでも発射できるように
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && aiming) {
+                launchBall();
+                aiming = false;
+            }
+        });
+
+        // リセットボタン
+        document.getElementById('reset-btn').addEventListener('click', resetGame);
+
+        // 次のレベルボタン
+        document.getElementById('next-btn').addEventListener('click', resetGame);
+
+        // 定期的にブロックの状態をチェック
+        setInterval(checkBlockStatus, 100);
+
+        // 初期レベルを設定
+        setupLevel();
+
+        // 初期ボール位置
+        resetBallPosition();
+
+        // 衝突イベントを検出
+        Events.on(engine, 'collisionStart', function(event) {
+            // すべての衝突ペアをチェック
+            const pairs = event.pairs;
+
+            // テクスチャがまだ変更されていない場合のみ処理
+            if (!textureChanged) {
+                for (let i = 0; i < pairs.length; i++) {
+                    const pair = pairs[i];
+
+                    // ボールとターゲットブロックの衝突を検出
+                    if ((pair.bodyA.label === "ball" && pair.bodyB.label === "targetBlock") ||
+                        (pair.bodyA.label === "targetBlock" && pair.bodyB.label === "ball")) {
+
+                        // ターゲットブロックを特定
+                        const block = pair.bodyA.label === "targetBlock" ? pair.bodyA : pair.bodyB;
+
+                        // テクスチャを変更
+                        block.render.sprite.texture = 'stage2.png';
+
+                        // テクスチャ変更フラグを立てる
+                        textureChanged = true;
+
+                        console.log("テクスチャを stage2.png に変更しました");
+
+                        // 一定時間後にテクスチャを元に戻すタイマーを設定
+                        clearTimeout(textureTimer); // 既存のタイマーをクリア
+
+                        textureTimer = setTimeout(function() {
+                            // ブロックがまだ存在し、ゲームオーバーでなければテクスチャを元に戻す
+                            if (targetBlock && !isGameOver && !blockFallen) {
+                                targetBlock.render.sprite.texture = 'stage1.png';
+                                textureChanged = false; // テクスチャ変更フラグをリセット
+                                console.log("テクスチャを stage1.png に戻しました");
+                            }
+                        }, 500); // 2秒後に元に戻す
+
+                        break;
+                    }
+                }
+            }
+        });
+
+        // レンダラーを実行
+        Render.run(render);
+
+        // エンジンを実行
+        Runner.run(runner, engine);
+
+        // ウィンドウリサイズ対応
+        window.addEventListener('resize', function() {
+            render.options.width = window.innerWidth;
+            render.options.height = window.innerHeight;
+            render.canvas.width = window.innerWidth;
+            render.canvas.height = window.innerHeight;
+
+            // 壁の位置を更新
+            Body.setPosition(ground, {
+                x: window.innerWidth / 2,
+                y: window.innerHeight
+            });
+            Body.setPosition(ceiling, {
+                x: window.innerWidth / 2,
+                y: 0
+            });
+            Body.setPosition(leftWall, {
+                x: -window.innerWidth / 2,
+                y: window.innerHeight / 2
+            });
+            Body.setPosition(rightWall, {
+                x: window.innerWidth * 1.5,
+                y: window.innerHeight / 2
+            });
+
+            // 壁のサイズを更新
+            Body.setVertices(ground, Bodies.rectangle(window.innerWidth / 2, window.innerHeight, window.innerWidth * 3, 50).vertices);
+            Body.setVertices(ceiling, Bodies.rectangle(window.innerWidth / 2, 0, window.innerWidth * 3, 50).vertices);
+            Body.setVertices(leftWall, Bodies.rectangle(-window.innerWidth / 2, window.innerHeight / 2, 50, window.innerHeight).vertices);
+            Body.setVertices(rightWall, Bodies.rectangle(window.innerWidth * 1.5, window.innerHeight / 2, 50, window.innerHeight).vertices);
+
+            // 発射台の位置を更新
+            Body.setPosition(launcher, {
+                x: window.innerWidth * 0.1,
+                y: window.innerHeight - 80
+            });
+
+            // レベルをリセット
+            resetGame();
+        });
+    </script>
+</body>
+
+</html>

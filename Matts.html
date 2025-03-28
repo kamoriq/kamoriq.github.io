@@ -13,12 +13,12 @@
             background-color: #f0f0f0;
             font-family: Arial, sans-serif;
         }
-
+        
         #canvas-container {
             width: 100%;
             height: 100vh;
         }
-
+        
         #controls {
             position: absolute;
             top: 20px;
@@ -27,7 +27,7 @@
             padding: 10px;
             border-radius: 5px;
         }
-
+        
         button {
             margin: 5px;
             padding: 8px 12px;
@@ -37,7 +37,7 @@
             border-radius: 4px;
             cursor: pointer;
         }
-
+        
         button:hover {
             background-color: #45a049;
         }
@@ -54,12 +54,8 @@
         <button id="reset">リセット</button>
     </div>
 
-    <div id="instructions"
-        style="position: absolute; bottom: 10px; left: 10px; color: #fff; background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
-        1. キャンバス上をクリックして球を配置<br>
-        2. マウスを動かして方向とパワーを調整<br>
-        3. もう一度クリックまたはスペースキーで発射<br>
-        ESCキーでキャンセル
+    <div id="instructions" style="position: absolute; bottom: 10px; left: 10px; color: #fff; background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;">
+        1. キャンバス上をクリックして球を配置<br> 2. マウスを動かして方向とパワーを調整<br> 3. もう一度クリックまたはスペースキーで発射<br> ESCキーでキャンセル
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -97,32 +93,48 @@
             window.innerWidth / 2,
             window.innerHeight,
             window.innerWidth,
-            50,
-            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+            50, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                }
+            }
         );
 
         const ceiling = Bodies.rectangle(
             window.innerWidth / 2,
             0,
             window.innerWidth,
-            50,
-            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+            50, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                }
+            }
         );
 
         const leftWall = Bodies.rectangle(
             0,
             window.innerHeight / 2,
             50,
-            window.innerHeight,
-            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+            window.innerHeight, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                }
+            }
         );
 
         const rightWall = Bodies.rectangle(
             window.innerWidth,
             window.innerHeight / 2,
             50,
-            window.innerHeight,
-            { isStatic: true, render: { fillStyle: '#2e2b44' } }
+            window.innerHeight, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#2e2b44'
+                }
+            }
         );
 
         // 世界に壁を追加
@@ -311,7 +323,7 @@
         }
 
         // クリックで球の位置を設定
-        render.canvas.addEventListener('mousedown', function (event) {
+        render.canvas.addEventListener('mousedown', function(event) {
             const rect = render.canvas.getBoundingClientRect();
             const mouseX = event.clientX - rect.left;
             const mouseY = event.clientY - rect.top;
@@ -328,7 +340,10 @@
             }
 
             // 新しい位置をセット
-            ballPosition = { x: mouseX, y: mouseY };
+            ballPosition = {
+                x: mouseX,
+                y: mouseY
+            };
 
             // 仮のボールを表示
             renderTempBall();
@@ -338,14 +353,14 @@
         });
 
         // マウス移動で矢印を更新
-        render.canvas.addEventListener('mousemove', function (event) {
+        render.canvas.addEventListener('mousemove', function(event) {
             if (aiming) {
                 updateLauncherArrow(event);
             }
         });
 
         // キーボード制御（ESCでキャンセル）
-        document.addEventListener('keydown', function (event) {
+        document.addEventListener('keydown', function(event) {
             // ESCで発射をキャンセル
             if (event.key === 'Escape') {
                 const arrow = document.getElementById('aim-arrow-svg');
@@ -408,7 +423,7 @@
                 15, // 半径
                 {
                     restitution: 0.9, // 反発係数
-                    friction: 0.001,  // 摩擦
+                    friction: 0.001, // 摩擦
                     render: {
                         fillStyle: '#ff0000' // 赤色
                     }
@@ -421,8 +436,7 @@
             // 力を加える
             Body.applyForce(
                 ball,
-                ball.position,
-                {
+                ball.position, {
                     x: dirX * launcherPower,
                     y: dirY * launcherPower
                 }
@@ -432,7 +446,7 @@
         document.getElementById('add-circle').addEventListener('click', addCircle);
         document.getElementById('add-rectangle').addEventListener('click', addRectangle);
         document.getElementById('add-polygon').addEventListener('click', addPolygon);
-        document.getElementById('launch-ball').addEventListener('click', function () {
+        document.getElementById('launch-ball').addEventListener('click', function() {
             // 既に配置済みの場合は発射
             if (ballPosition) {
                 launchBall();
@@ -453,7 +467,7 @@
                 aiming = true;
             }
         });
-        document.getElementById('reset').addEventListener('click', function () {
+        document.getElementById('reset').addEventListener('click', function() {
             resetWorld();
             // 矢印と仮ボールを削除
             const arrow = document.getElementById('aim-arrow');
@@ -465,17 +479,29 @@
         });
 
         // ウィンドウリサイズ対応
-        window.addEventListener('resize', function () {
+        window.addEventListener('resize', function() {
             render.options.width = window.innerWidth;
             render.options.height = window.innerHeight;
             render.canvas.width = window.innerWidth;
             render.canvas.height = window.innerHeight;
 
             // 壁の位置を更新
-            Body.setPosition(ground, { x: window.innerWidth / 2, y: window.innerHeight });
-            Body.setPosition(ceiling, { x: window.innerWidth / 2, y: 0 });
-            Body.setPosition(leftWall, { x: 0, y: window.innerHeight / 2 });
-            Body.setPosition(rightWall, { x: window.innerWidth, y: window.innerHeight / 2 });
+            Body.setPosition(ground, {
+                x: window.innerWidth / 2,
+                y: window.innerHeight
+            });
+            Body.setPosition(ceiling, {
+                x: window.innerWidth / 2,
+                y: 0
+            });
+            Body.setPosition(leftWall, {
+                x: 0,
+                y: window.innerHeight / 2
+            });
+            Body.setPosition(rightWall, {
+                x: window.innerWidth,
+                y: window.innerHeight / 2
+            });
 
             // 壁のサイズを更新
             Body.setVertices(ground, Bodies.rectangle(window.innerWidth / 2, window.innerHeight, window.innerWidth, 50).vertices);
