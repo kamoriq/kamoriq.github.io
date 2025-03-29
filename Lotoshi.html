@@ -237,7 +237,7 @@
                 density: 0.01, // 密度を5倍に増加（0.002→0.01）
                 render: {
                     sprite: {
-                        texture: 'stage1.png',
+                        texture: 'boss1.png',
                         xScale: 0.2,
                         yScale: 0.2
                     }
@@ -448,8 +448,8 @@
 
             // ベクトルの計算
             const force = Vector.create(
-                Math.cos(launchAngle) * launchPower * 0.2,
-                Math.sin(launchAngle) * launchPower * 0.2
+                Math.cos(launchAngle) * launchPower * 0.4,
+                Math.sin(launchAngle) * launchPower * 0.4
             );
 
             // 力を加える
@@ -700,12 +700,12 @@
                         const block = pair.bodyA.label === "targetBlock" ? pair.bodyA : pair.bodyB;
 
                         // テクスチャを変更
-                        block.render.sprite.texture = 'stage2.png';
+                        block.render.sprite.texture = 'boss1OnHit.png';
 
                         // テクスチャ変更フラグを立てる
                         textureChanged = true;
 
-                        console.log("テクスチャを stage2.png に変更しました");
+                        console.log("テクスチャ変更");
 
                         // 一定時間後にテクスチャを元に戻すタイマーを設定
                         clearTimeout(textureTimer); // 既存のタイマーをクリア
@@ -713,11 +713,11 @@
                         textureTimer = setTimeout(function() {
                             // ブロックがまだ存在し、ゲームオーバーでなければテクスチャを元に戻す
                             if (targetBlock && !isGameOver && !blockFallen) {
-                                targetBlock.render.sprite.texture = 'stage1.png';
+                                targetBlock.render.sprite.texture = 'boss1.png';
                                 textureChanged = false; // テクスチャ変更フラグをリセット
-                                console.log("テクスチャを stage1.png に戻しました");
+                                console.log("テクスチャを boss1.png に戻しました");
                             }
-                        }, 2000); // 2秒後に元に戻す
+                        }, 500); // 2秒後に元に戻す
 
                         break;
                     }
@@ -780,6 +780,6 @@
 ~Log~
 ステ３：グラ
 ステ２：グラ
+
 ゲーム性について考える必要がある
-空中にある玉同士をぶつけた時の挙動を入れる
 -->
