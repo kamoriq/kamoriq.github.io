@@ -125,6 +125,8 @@
         let lastMouseX = 0;
         let lastMouseY = 0;
 
+        let movingPlatforms = [];
+
         // エンジンを作成
         const engine = Engine.create();
         engine.world.gravity.y = 1; // 重力を設定
@@ -236,10 +238,12 @@
                 friction: 0.1, // 摩擦
                 density: 0.01, // 密度を5倍に増加（0.002→0.01）
                 render: {
+                    // fillStyle: '#000000', // 茶色の台
+
                     sprite: {
                         texture: 'boss1.png',
-                        xScale: 0.2,
-                        yScale: 0.2
+                        xScale: 0.05,
+                        yScale: 0.05
                     }
                 },
                 label: "targetBlock"
@@ -247,6 +251,57 @@
 
             Composite.add(engine.world, targetBlock);
             return targetBlock;
+        }
+
+        // 動くプラットフォームを作成する関数
+        function createMovingPlatform(x, y, width, height, yMin, yMax, speed) {
+            const platform = Bodies.rectangle(x, y, width, height, {
+                isStatic: true,
+                render: {
+                    fillStyle: '#4682B4', // 青色のプラットフォーム
+                    strokeStyle: '#000000',
+                    lineWidth: 2
+                },
+                label: "movingPlatform"
+            });
+
+            // プラットフォームの動きのパラメータを保存
+            platform.movement = {
+                yMin: yMin,          // 最小Y位置
+                yMax: yMax,          // 最大Y位置
+                speed: speed,        // 移動速度
+                direction: 1         // 1: 下方向, -1: 上方向
+            };
+
+            Composite.add(engine.world, platform);
+            movingPlatforms.push(platform);
+            return platform;
+        }
+
+        // プラットフォームを動かす関数
+        function updateMovingPlatforms() {
+            movingPlatforms.forEach(platform => {
+                const movement = platform.movement;
+                
+                // 現在の位置を取得
+                const currentY = platform.position.y;
+                
+                // 方向を変更する必要があるか確認
+                if (currentY >= movement.yMax) {
+                    movement.direction = -1; // 上方向に変更
+                } else if (currentY <= movement.yMin) {
+                    movement.direction = 1;  // 下方向に変更
+                }
+                
+                // 新しい位置を計算
+                const newY = currentY + (movement.speed * movement.direction);
+                
+                // プラットフォームを移動
+                Body.setPosition(platform, {
+                    x: platform.position.x,
+                    y: newY
+                });
+            });
         }
 
         // 発射台を作成
@@ -285,20 +340,43 @@
         // レベル（台座と立方体）を設定
         function setupLevel() {
             // 台座を右側に配置
-            const platformX = window.innerWidth * 0.7;
+            const platformX = window.innerWidth * 0.9;
             const platformY = window.innerHeight * 0.7;
-            const platformWidth = 200;
+            const platformWidth = 20;
             const platformHeight = 30;
 
             createPlatform(platformX, platformY, platformWidth, platformHeight);
 
             // 大きな立方体を台座の上に配置
-            const blockWidth = 60;
-            const blockHeight = 200;
+            const blockWidth = 10;
+            const blockHeight = 20;
             createTargetBlock(platformX, platformY - platformHeight / 2 - blockHeight / 2, blockWidth, blockHeight);
 
             // 若干回転を加えて不安定にする（面白さのため）
             Body.rotate(targetBlock, 0.05);
+
+            // 動くプラットフォームを追加
+            // 1つ目のプラットフォーム（左側）
+            createMovingPlatform(
+                window.innerWidth * 0.3,           // x位置
+                window.innerHeight * 0.8,          // 初期y位置
+                100,                               // 幅
+                15,                                // 高さ
+                window.innerHeight * 0.6,          // 最小y位置
+                window.innerHeight * 0.8,          // 最大y位置
+                3                                  // 速度
+            );
+            
+            // 2つ目のプラットフォーム（右側）
+            createMovingPlatform(
+                window.innerWidth * 0.6,           // x位置
+                window.innerHeight * 0.5,          // 初期y位置
+                100,                               // 幅
+                15,                                // 高さ
+                window.innerHeight * 0.5,          // 最小y位置
+                window.innerHeight * 0.8,          // 最大y位置
+                3.5                                // 速度
+            );
 
             blockFallen = false;
 
@@ -594,6 +672,12 @@
                 Composite.remove(engine.world, platform);
                 platform = null;
             }
+            
+            // 既存の動くプラットフォームを削除
+            for (let i = 0; i < movingPlatforms.length; i++) {
+                Composite.remove(engine.world, movingPlatforms[i]);
+            }
+            movingPlatforms = [];
 
             // 新しいレベルを設定
             setupLevel();
@@ -678,11 +762,10 @@
         // 定期的にブロックの状態をチェック
         setInterval(checkBlockStatus, 100);
 
-        // 初期レベルを設定
-        setupLevel();
-
-        // 初期ボール位置
-        resetBallPosition();
+        // エンジンの更新イベントでプラットフォームを動かす
+        Events.on(engine, 'beforeUpdate', function() {
+            updateMovingPlatforms();
+        });
 
         // 衝突イベントを検出
         Events.on(engine, 'collisionStart', function(event) {
@@ -719,13 +802,19 @@
                                 textureChanged = false; // テクスチャ変更フラグをリセット
                                 console.log("テクスチャを boss1.png に戻しました");
                             }
-                        }, 500); // 2秒後に元に戻す
+                        }, 500); // 500ミリ秒後に元に戻す
 
                         break;
                     }
                 }
             }
         });
+
+        // 初期レベルを設定
+        setupLevel();
+
+        // 初期ボール位置
+        resetBallPosition();
 
         // レンダラーを実行
         Render.run(render);
