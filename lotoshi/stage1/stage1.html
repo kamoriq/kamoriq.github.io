@@ -90,10 +90,11 @@
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
-        <h2>くりあ</h2>
+        <h2>クリア！</h2>
+        <p>おめでとうございます！</p>
         <p>スコア: <span id="final-score">0</span></p>
         <p>使用ボール数: <span id="balls-used">0</span></p>
-        <!-- <button id="next-btn">すすむ</button> -->
+        <button id="next-btn">すすむ</button>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -670,9 +671,9 @@
         document.getElementById('reset-btn').addEventListener('click', resetGame);
 
         // 次のレベルボタン
-        // document.getElementById('next-btn').addEventListener('click', function() {
-        //     window.location.href = 'stage2/stage2.html'; // パスはフォルダ構造によって調整
-        // });
+        document.getElementById('next-btn').addEventListener('click', function() {
+            window.location.href = '../stage2/stage2.html'; // パスはフォルダ構造によって調整
+        });
 
         // 定期的にブロックの状態をチェック
         setInterval(checkBlockStatus, 100);
