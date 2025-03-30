@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物理演算射的ゲーム - 横長ステージ</title>
+    <title>物理演算射的ゲーム - 跳ね回る敵</title>
     <style>
         body {
             margin: 0;
@@ -14,12 +14,12 @@
             /* 空色の背景 */
             font-family: Arial, sans-serif;
         }
-        
+
         #canvas-container {
             width: 100%;
             height: 100vh;
         }
-        
+
         #game-info {
             position: absolute;
             top: 20px;
@@ -31,7 +31,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
             z-index: 100;
         }
-        
+
         #instructions {
             position: absolute;
             bottom: 20px;
@@ -44,7 +44,7 @@
             line-height: 1.5;
             z-index: 100;
         }
-        
+
         #reset-btn {
             position: absolute;
             top: 20px;
@@ -59,11 +59,11 @@
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
             z-index: 100;
         }
-        
+
         #reset-btn:hover {
             background-color: #e74c3c;
         }
-        
+
         #level-complete {
             position: absolute;
             top: 50%;
@@ -86,14 +86,14 @@
     <div id="game-info">
         <div>スコア: <span id="score">0</span></div>
         <div>残りボール: <span id="balls-left">10</span></div>
-        <div>ステータス: <span id="status">ブロックを倒そう!</span></div>
+        <div>ヒット数: <span id="hits">0</span> / 9</div>
+        <div>ステータス: <span id="status">敵に9回ヒットさせよう!</span></div>
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
         <h2>くりあ</h2>
         <p>スコア: <span id="final-score">0</span></p>
         <p>使用ボール数: <span id="balls-used">0</span></p>
-        <!-- <button id="next-btn">すすむ</button> -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -111,18 +111,25 @@
         // ゲーム状態
         let score = 0;
         let ballsLeft = 10;
-        let targetBlock = null;
-        let platform = null;
+        let enemyBody = null;
         let isGameOver = false;
         let ballPosition = null;
         let launchAngle = 0;
         let launchPower = 0.2;
-        let blockFallen = false;
+        let hitsRequired = 9;
+        let hitCount = 0;
         let textureChanged = false; // テクスチャが変更されたかどうかのフラグ
         let textureTimer = null; // テクスチャを元に戻すためのタイマー
         // 最後のマウス位置を追跡するための変数を追加
         let lastMouseX = 0;
         let lastMouseY = 0;
+        // 最初のボールが発射されたかどうかを追跡するフラグ
+        let firstBallFired = false;
+        // 最初の衝突が発生したかを追跡するフラグ
+        let firstHit = false;
+
+        let backgroundMusic = null;
+        let hitSound = null;
 
         // エンジンを作成
         const engine = Engine.create();
@@ -142,6 +149,63 @@
                 showVelocity: false
             }
         });
+
+        // 音楽を初期化する関数
+        function initAudio() {
+            try {
+                // 背景音楽を作成
+                backgroundMusic = new Audio('background-music.mp3'); // 背景音楽ファイル
+                backgroundMusic.loop = true; // ループ再生
+                backgroundMusic.volume = 0.1; // 音量10%
+                
+                // ヒット効果音
+                hitSound = new Audio('hit-sound.mp3'); // ヒット効果音ファイル
+                hitSound.volume = 0.3; // 音量30%
+                
+                console.log("音楽の初期化に成功しました");
+            } catch (error) {
+                console.error("音楽の初期化に失敗しました:", error);
+            }
+        }
+
+        // 背景音楽を再生する関数
+        function playBackgroundMusic() {
+            if (backgroundMusic) {
+                backgroundMusic.play().catch(error => {
+                    // 自動再生ポリシーによるエラーをキャッチ
+                    console.log("音楽の自動再生に失敗しました。ユーザーインタラクションが必要です:", error);
+                });
+            }
+        }
+
+        // ヒット効果音を再生する関数
+        function playHitSound() {
+            if (hitSound) {
+                // 再生中なら最初から再生し直す
+                hitSound.currentTime = 0;
+                hitSound.play().catch(error => {
+                    console.log("効果音の再生に失敗しました:", error);
+                });
+            }
+        }
+
+        // 背景音楽を停止する関数
+        function stopBackgroundMusic() {
+            if (backgroundMusic) {
+                // フェードアウト効果を追加（オプション）
+                const fadeAudio = setInterval(function () {
+                    if (backgroundMusic.volume > 0.01) {
+                        backgroundMusic.volume -= 0.1;
+                    } else {
+                        backgroundMusic.pause();
+                        backgroundMusic.currentTime = 0;
+                        backgroundMusic.volume = 0.1; // 音量をリセット
+                        clearInterval(fadeAudio);
+                    }
+                }, 100);
+            }
+        }
+
 
         // ランナーを作成
         const runner = Runner.create();
@@ -163,12 +227,12 @@
             window.innerHeight,
             window.innerWidth * 3, // 横長に拡張
             50, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#663300' // 茶色の地面
-                },
-                label: "ground"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#663300' // 茶色の地面
+            },
+            label: "ground"
+        }
         );
 
         const ceiling = Bodies.rectangle(
@@ -176,24 +240,24 @@
             0,
             window.innerWidth * 3, // 横長に拡張
             50, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "ceiling"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "ceiling"
+        }
         );
 
         const leftWall = Bodies.rectangle(-window.innerWidth / 2,
             window.innerHeight / 2,
             50,
             window.innerHeight, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "wall"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "wall"
+        }
         );
 
         const rightWall = Bodies.rectangle(
@@ -201,51 +265,37 @@
             window.innerHeight / 2,
             50,
             window.innerHeight, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "wall"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "wall"
+        }
         );
 
         // 世界に壁を追加
         Composite.add(engine.world, [ground, ceiling, leftWall, rightWall]);
 
-        // 台座を作成する関数
-        function createPlatform(x, y, width, height) {
-            platform = Bodies.rectangle(x, y, width, height, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#8D6E63', // 茶色の台
-                    strokeStyle: '#5D4037',
-                    lineWidth: 2
-                },
-                label: "platform"
-            });
-
-            Composite.add(engine.world, platform);
-            return platform;
-        }
-
-        // 倒すブロックを作成する関数
-        function createTargetBlock(x, y, width, height) {
-            targetBlock = Bodies.rectangle(x, y - (height / 2), width, height, {
-                restitution: 0.2, // 反発係数
-                friction: 0.1, // 摩擦
-                density: 0.01, // 密度を5倍に増加（0.002→0.01）
+        // 敵キャラクターを作成する関数
+        function createEnemy(x, y) {
+            enemyBody = Bodies.circle(x, y, 30, {
+                isStatic: true,  // 静的オブジェクトとして作成（重力や力の影響を受けない）
+                restitution: 1, // 高い反発係数
+                friction: 0.05,   // 低い摩擦
+                density: 0.002,   // 低い密度
+                frictionAir: 0.0001, // 空気抵抗を低く
                 render: {
                     sprite: {
                         texture: 'boss1.png',
-                        xScale: 0.2,
-                        yScale: 0.2
+                        xScale: 0.15,
+                        yScale: 0.15
                     }
                 },
-                label: "targetBlock"
+                label: "enemy"
             });
 
-            Composite.add(engine.world, targetBlock);
-            return targetBlock;
+            Composite.add(engine.world, enemyBody);
+            return enemyBody;
         }
 
         // 発射台を作成
@@ -254,14 +304,14 @@
             window.innerHeight - 80,
             100,
             20, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#555555',
-                    strokeStyle: '#222222',
-                    lineWidth: 2
-                },
-                label: "launcher"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#555555',
+                strokeStyle: '#222222',
+                lineWidth: 2
+            },
+            label: "launcher"
+        }
         );
 
         Composite.add(engine.world, launcher);
@@ -281,28 +331,20 @@
             });
         }
 
-        // レベル（台座と立方体）を設定
+        // レベル（敵と障害物）を設定
         function setupLevel() {
-            // 台座を右側に配置
-            const platformX = window.innerWidth * 0.7;
-            const platformY = window.innerHeight * 0.7;
-            const platformWidth = 200;
-            const platformHeight = 30;
+            // 中央に敵を配置
+            createEnemy(window.innerWidth * 0.5, window.innerHeight * 0.3);
 
-            createPlatform(platformX, platformY, platformWidth, platformHeight);
-
-            // 大きな立方体を台座の上に配置
-            const blockWidth = 60;
-            const blockHeight = 200;
-            createTargetBlock(platformX, platformY - platformHeight / 2 - blockHeight / 2, blockWidth, blockHeight);
-
-            // 若干回転を加えて不安定にする（面白さのため）
-            Body.rotate(targetBlock, 0.05);
-
-            blockFallen = false;
+            // ヒットカウントをリセット
+            hitCount = 0;
+            document.getElementById('hits').textContent = hitCount;
 
             // カメラを設定
             setupCamera();
+
+            // 背景音楽を開始
+            playBackgroundMusic();
         }
 
         // 仮のボールを描画
@@ -420,6 +462,9 @@
         function launchBall() {
             if (!ballPosition || ballsLeft <= 0 || isGameOver) return;
 
+            // ボールが発射されたことをマーク
+            firstBallFired = true;
+
             // 仮ボールを削除
             const tempBall = document.getElementById('temp-ball');
             if (tempBall) tempBall.remove();
@@ -458,11 +503,18 @@
             ballsLeft--;
             document.getElementById('balls-left').textContent = ballsLeft;
 
+            // 1秒後にボールを削除
+            setTimeout(function () {
+                if (ball && ball.id) {
+                    Composite.remove(engine.world, ball);
+                }
+            }, 1000);
+
             // ボールの位置をリセット
             resetBallPosition();
 
             // ボールがなくなったらゲームオーバーチェック
-            if (ballsLeft <= 0 && !blockFallen) {
+            if (ballsLeft <= 0 && hitCount < hitsRequired) {
                 setTimeout(checkGameOver, 3000); // 3秒後にゲームオーバーチェック
             }
         }
@@ -476,41 +528,27 @@
             renderTempBall();
         }
 
-        // ブロックが倒れたかチェック
-        function checkBlockStatus() {
-            if (!targetBlock || blockFallen) return;
-
-            // ブロックの傾きをチェック（垂直から30度以上傾いていれば倒れたとみなす）
-            const angle = targetBlock.angle % (Math.PI * 2);
-            const absoluteAngle = Math.min(
-                Math.abs(angle),
-                Math.abs(angle - Math.PI),
-                Math.abs(angle - Math.PI * 2)
-            );
-
-            // ブロックの位置もチェック（台から落ちたか）
-            const blockFellOff = targetBlock.position.y > window.innerHeight - 30 ||
-                Math.abs(targetBlock.position.x - platform.position.x) > 150;
-
-            if (absoluteAngle > Math.PI / 6 || blockFellOff) { // 30度以上傾いたか、台から落ちた
-                blockFallen = true;
-
+        // 敵に当たった回数をチェック
+        function checkEnemyHits() {
+            if (hitCount >= hitsRequired) {
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
                 score = baseScore + bonusScore;
 
                 document.getElementById('score').textContent = score;
-                document.getElementById('status').textContent = "ブロック倒れた！";
+                document.getElementById('status').textContent = "敵を倒した！";
 
                 // ゲームクリア
                 setTimeout(gameWin, 1500);
+                return true;
             }
+            return false;
         }
 
         // ゲームオーバーチェック
         function checkGameOver() {
-            if (ballsLeft <= 0 && !blockFallen) {
+            if (ballsLeft <= 0 && hitCount < hitsRequired) {
                 isGameOver = true;
                 showGameOverMessage("ゲームオーバー！もう一度挑戦しよう！");
             }
@@ -529,6 +567,9 @@
             // クリア画面表示
             const levelComplete = document.getElementById('level-complete');
             levelComplete.style.display = 'block';
+
+            // 背景音楽を停止
+            stopBackgroundMusic();
         }
 
         // ゲームオーバーメッセージを表示
@@ -550,7 +591,7 @@
 
             document.body.appendChild(gameOverDiv);
 
-            document.getElementById('restart-btn').addEventListener('click', function() {
+            document.getElementById('restart-btn').addEventListener('click', function () {
                 resetGame();
                 gameOverDiv.remove();
             });
@@ -568,11 +609,14 @@
             score = 0;
             ballsLeft = 10;
             isGameOver = false;
-            blockFallen = false;
+            hitCount = 0;
             textureChanged = false; // テクスチャ変更フラグもリセット
+            firstBallFired = false; // 最初のボールフラグをリセット
+            firstHit = false;       // 最初のヒットフラグをリセット
             document.getElementById('score').textContent = score;
             document.getElementById('balls-left').textContent = ballsLeft;
-            document.getElementById('status').textContent = "ブロックを倒そう!";
+            document.getElementById('hits').textContent = hitCount;
+            document.getElementById('status').textContent = "敵に9回ヒットさせよう!";
 
             // クリア画面を非表示に
             document.getElementById('level-complete').style.display = 'none';
@@ -583,15 +627,10 @@
             const tempBall = document.getElementById('temp-ball');
             if (tempBall) tempBall.remove();
 
-            // 既存のターゲットブロックと台座を削除
-            if (targetBlock) {
-                Composite.remove(engine.world, targetBlock);
-                targetBlock = null;
-            }
-
-            if (platform) {
-                Composite.remove(engine.world, platform);
-                platform = null;
+            // 既存の敵を削除
+            if (enemyBody) {
+                Composite.remove(engine.world, enemyBody);
+                enemyBody = null;
             }
 
             // 新しいレベルを設定
@@ -602,7 +641,7 @@
         }
 
         // マウスクリックでボールを直接発射
-        render.canvas.addEventListener('click', function(event) {
+        render.canvas.addEventListener('click', function (event) {
             if (isGameOver) return;
 
             // マウス座標の取得
@@ -631,7 +670,7 @@
         });
 
         // マウス移動で矢印を常に更新（ボールの位置が設定されていれば）
-        render.canvas.addEventListener('mousemove', function(event) {
+        render.canvas.addEventListener('mousemove', function (event) {
             // マウス位置を常に記録
             const rect = render.canvas.getBoundingClientRect();
             lastMouseX = event.clientX - rect.left;
@@ -643,7 +682,7 @@
         });
 
         // スペースキーでも発射できるように（最終版）
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.code === 'Space' && !isGameOver && ballPosition) {
                 // ボールの位置をセット（まだセットされていない場合）
                 if (!ballPosition) {
@@ -669,62 +708,209 @@
         // リセットボタン
         document.getElementById('reset-btn').addEventListener('click', resetGame);
 
-        // 次のレベルボタン
-        // document.getElementById('next-btn').addEventListener('click', function() {
-        //     window.location.href = 'stage2/stage2.html'; // パスはフォルダ構造によって調整
-        // });
+        // 衝突イベントを検出
+        Events.on(engine, 'collisionStart', function (event) {
+            // すべての衝突ペアをチェック
+            const pairs = event.pairs;
 
-        // 定期的にブロックの状態をチェック
-        setInterval(checkBlockStatus, 100);
+            for (let i = 0; i < pairs.length; i++) {
+                const pair = pairs[i];
+
+                // ボールと敵の衝突を検出
+                if ((pair.bodyA.label === "ball" && pair.bodyB.label === "enemy") ||
+                    (pair.bodyA.label === "enemy" && pair.bodyB.label === "ball")) {
+
+                    // 敵を特定
+                    const enemy = pair.bodyA.label === "enemy" ? pair.bodyA : pair.bodyB;
+
+                    // 最初のヒットの場合、敵を動的にして動き始める
+                    if (!firstHit) {
+                        firstHit = true;
+                        
+                        // 敵を静的から動的に変更
+                        Body.setStatic(enemy, false);
+                        
+                        // 敵に初期速度を設定
+                        Body.setVelocity(enemy, {
+                            x: (Math.random() - 0.5) * 5,
+                            y: (Math.random() - 0.5) * 5
+                        });
+                        
+                        // 敵が動き始めたことをステータスに表示
+                        document.getElementById('status').textContent = "敵が動き出した！";
+                        
+                        // 少し時間を置いてステータスを元に戻す
+                        setTimeout(function() {
+                            if (!isGameOver) {
+                                document.getElementById('status').textContent = "敵に9回ヒットさせよう!";
+                            }
+                        }, 2000);
+                    }
+
+                    // テクスチャを変更 (テクスチャが変更されていない場合のみ)
+                    if (!textureChanged) {
+                        enemy.render.sprite.texture = 'boss1OnHit.png';
+                        textureChanged = true;
+
+                        // 一定時間後にテクスチャを元に戻すタイマーを設定
+                        clearTimeout(textureTimer); // 既存のタイマーをクリア
+                        textureTimer = setTimeout(function () {
+                            if (enemyBody && !isGameOver) {
+                                enemyBody.render.sprite.texture = 'boss1.png';
+                                textureChanged = false;
+                            }
+                        }, 500);
+                    }
+
+                    // ヒット数を増やして敵を加速させる
+                    if (!pair.isHitCounted) {
+                        hitCount++;
+                        document.getElementById('hits').textContent = hitCount;
+                        pair.isHitCounted = true;
+                        
+                        // ヒット効果音を再生
+                        playHitSound();
+
+                        // 敵の現在の速度を取得
+                        const velocity = enemy.velocity;
+                        const currentSpeed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+                        // ヒットのたびに速度を増加させる
+                        const speedBoost = 1.13;
+
+                        // 少しランダム性を加える（より予測できない動きに）
+                        const randomAngle = Math.random() * Math.PI / 4 - Math.PI / 8; // -22.5度～+22.5度
+
+                        // 新しい速度ベクトルを計算
+                        const speed = currentSpeed * speedBoost;
+                        const angle = Math.atan2(velocity.y, velocity.x) + randomAngle;
+                        const newVelocity = {
+                            x: Math.cos(angle) * speed,
+                            y: Math.sin(angle) * speed
+                        };
+
+                        // 敵に新しい速度を設定
+                        Body.setVelocity(enemy, newVelocity);
+
+                        // ヒット時のエフェクト（敵が一瞬大きくなる）
+                        const originalScale = 0.15;
+                        const scaleUp = originalScale * 1.2;
+
+                        // サイズを一瞬大きくする
+                        enemy.render.sprite.xScale = scaleUp;
+                        enemy.render.sprite.yScale = scaleUp;
+
+                        // 少し時間をおいて元のサイズに戻す
+                        setTimeout(function () {
+                            if (enemy && !isGameOver) {
+                                enemy.render.sprite.xScale = originalScale;
+                                enemy.render.sprite.yScale = originalScale;
+                            }
+                        }, 150);
+
+                        // ヒット数が目標に達したらゲームクリア
+                        checkEnemyHits();
+                    }
+
+                    break;
+                }
+            }
+        });
+
+        // エンジンの更新イベントで敵の制御を行う
+        Events.on(engine, 'beforeUpdate', function () {
+            // 最初のヒットが発生していなければ、敵の制御は行わない
+            if (!firstHit || !enemyBody) return;
+            
+            // 敵の速度と位置の制御
+            if (enemyBody) {
+                // 敵が画面外に出ないようにする
+                const margin = 50; // 画面端からのマージン
+                const radius = 30; // 敵の半径
+
+                const minX = margin + radius;
+                const maxX = window.innerWidth - margin - radius;
+                const minY = margin + radius;
+                const maxY = window.innerHeight - margin - radius;
+
+                const position = enemyBody.position;
+                let velocity = enemyBody.velocity;
+                let positionChanged = false;
+                let bounce = 1.05;
+
+                // X方向の境界チェック
+                if (position.x < minX) {
+                    Body.setPosition(enemyBody, { x: minX, y: position.y });
+                    velocity.x = Math.abs(velocity.x) * bounce; // 反対方向に跳ね返る
+                    positionChanged = true;
+                } else if (position.x > maxX) {
+                    Body.setPosition(enemyBody, { x: maxX, y: position.y });
+                    velocity.x = -Math.abs(velocity.x) * bounce; // 反対方向に跳ね返る
+                    positionChanged = true;
+                }
+
+                // Y方向の境界チェック
+                if (position.y < minY) {
+                    Body.setPosition(enemyBody, { x: position.x, y: minY });
+                    velocity.y = Math.abs(velocity.y) * bounce; // 反対方向に跳ね返る
+                    positionChanged = true;
+                } else if (position.y > maxY) {
+                    Body.setPosition(enemyBody, { x: position.x, y: maxY });
+                    velocity.y = -Math.abs(velocity.y) * bounce; // 反対方向に跳ね返る
+                    positionChanged = true;
+                }
+
+                // 位置が変更された場合は速度を更新
+                if (positionChanged) {
+                    Body.setVelocity(enemyBody, velocity);
+                }
+
+                // 敵の最大速度を制限
+                const maxSpeed = 20;
+                const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
+
+                if (speed > maxSpeed) {
+                    const factor = maxSpeed / speed;
+                    Body.setVelocity(enemyBody, {
+                        x: velocity.x * factor,
+                        y: velocity.y * factor
+                    });
+                }
+
+                // 敵が動かなくなるのを防ぐ
+                if (speed < 1) {
+                    const direction = {
+                        x: Math.random() * 2 - 1,
+                        y: Math.random() * 2 - 1
+                    };
+                    const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
+
+                    Body.setVelocity(enemyBody, {
+                        x: direction.x / length * 3,
+                        y: direction.y / length * 3
+                    });
+                }
+            }
+        });
+
+        // ページの読み込み完了時に音楽を初期化
+        window.addEventListener('DOMContentLoaded', function () {
+            // 音楽を初期化
+            initAudio();
+
+            // ユーザーインタラクションで音楽再生を有効にする
+            document.addEventListener('click', function () {
+                if (backgroundMusic && backgroundMusic.paused) {
+                    playBackgroundMusic();
+                }
+            }, { once: true }); // 一度だけ実行
+        });
 
         // 初期レベルを設定
         setupLevel();
 
         // 初期ボール位置
         resetBallPosition();
-
-        // 衝突イベントを検出
-        Events.on(engine, 'collisionStart', function(event) {
-            // すべての衝突ペアをチェック
-            const pairs = event.pairs;
-
-            // テクスチャがまだ変更されていない場合のみ処理
-            if (!textureChanged) {
-                for (let i = 0; i < pairs.length; i++) {
-                    const pair = pairs[i];
-
-                    // ボールとターゲットブロックの衝突を検出
-                    if ((pair.bodyA.label === "ball" && pair.bodyB.label === "targetBlock") ||
-                        (pair.bodyA.label === "targetBlock" && pair.bodyB.label === "ball")) {
-
-                        // ターゲットブロックを特定
-                        const block = pair.bodyA.label === "targetBlock" ? pair.bodyA : pair.bodyB;
-
-                        // テクスチャを変更
-                        block.render.sprite.texture = 'boss1OnHit.png';
-
-                        // テクスチャ変更フラグを立てる
-                        textureChanged = true;
-
-                        console.log("テクスチャ変更");
-
-                        // 一定時間後にテクスチャを元に戻すタイマーを設定
-                        clearTimeout(textureTimer); // 既存のタイマーをクリア
-
-                        textureTimer = setTimeout(function() {
-                            // ブロックがまだ存在し、ゲームオーバーでなければテクスチャを元に戻す
-                            if (targetBlock && !isGameOver && !blockFallen) {
-                                targetBlock.render.sprite.texture = 'boss1.png';
-                                textureChanged = false; // テクスチャ変更フラグをリセット
-                                console.log("テクスチャを boss1.png に戻しました");
-                            }
-                        }, 500); // 2秒後に元に戻す
-
-                        break;
-                    }
-                }
-            }
-        });
 
         // レンダラーを実行
         Render.run(render);
@@ -733,7 +919,7 @@
         Runner.run(runner, engine);
 
         // ウィンドウリサイズ対応
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             render.options.width = window.innerWidth;
             render.options.height = window.innerHeight;
             render.canvas.width = window.innerWidth;
