@@ -88,7 +88,6 @@
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
-        <p>ろーすこあ<span id="balls-used">0</span></p>
         <button id="next-btn">すすむ</button>
     </div>
 
@@ -615,7 +614,7 @@
             isGameOver = true;
 
             // 最終スコア更新
-            document.getElementById('balls-used').textContent = 10 - ballsLeft;
+            // document.getElementById('balls-used').textContent = 10 - ballsLeft;
 
             // クリア画面表示
             const levelComplete = document.getElementById('level-complete');
