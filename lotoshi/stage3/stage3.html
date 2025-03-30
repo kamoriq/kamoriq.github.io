@@ -154,11 +154,11 @@
                 backgroundMusic = new Audio('background-music.mp3'); // 背景音楽ファイル
                 backgroundMusic.loop = true; // ループ再生
                 backgroundMusic.volume = 0.1; // 音量10%
-                
+
                 // ヒット効果音
                 hitSound = new Audio('hit-sound.mp3'); // ヒット効果音ファイル
                 hitSound.volume = 0.3; // 音量30%
-                
+
                 console.log("音楽の初期化に成功しました");
             } catch (error) {
                 console.error("音楽の初期化に失敗しました:", error);
@@ -528,13 +528,16 @@
         // 敵に当たった回数をチェック
         function checkEnemyHits() {
             // if (hitCount >= hitsRequired) {
-                if (hitCount >= 1) {
+            if (hitCount >= 3) {
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
 
-
                 // ゲームクリア
+                // 空気抵抗を更新
+                Body.set(enemyBody, {
+                    frictionAir: 0.6
+                });
                 setTimeout(gameWin, 1500);
                 return true;
             }
@@ -718,20 +721,20 @@
                     // 最初のヒットの場合、敵を動的にして動き始める
                     if (!firstHit) {
                         firstHit = true;
-                        
+
                         // 敵を静的から動的に変更
                         Body.setStatic(enemy, false);
-                        
+
                         // 敵に初期速度を設定
                         Body.setVelocity(enemy, {
                             x: (Math.random() - 0.5) * 5,
                             y: (Math.random() - 0.5) * 5
                         });
-                        
+
                         // 敵が動き始めたことをステータスに表示
-                        
+
                         // 少し時間を置いてステータスを元に戻す
-                        setTimeout(function() {
+                        setTimeout(function () {
                             if (!isGameOver) {
                             }
                         }, 2000);
@@ -757,7 +760,7 @@
                         hitCount++;
                         document.getElementById('hits').textContent = hitsRequired - hitCount;
                         pair.isHitCounted = true;
-                        
+
                         // ヒット効果音を再生
                         playHitSound();
 
@@ -811,7 +814,7 @@
         Events.on(engine, 'beforeUpdate', function () {
             // 最初のヒットが発生していなければ、敵の制御は行わない
             if (!firstHit || !enemyBody) return;
-            
+
             // 敵の速度と位置の制御
             if (enemyBody) {
                 // 敵が画面外に出ないようにする
