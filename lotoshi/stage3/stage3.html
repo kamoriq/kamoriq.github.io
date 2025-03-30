@@ -126,6 +126,7 @@
         let firstHit = false;
 
         let backgroundMusic = null;
+        let winSFX = null;
         let hitSound = null;
 
         // エンジンを作成
@@ -155,6 +156,9 @@
                 backgroundMusic.loop = true; // ループ再生
                 backgroundMusic.volume = 0.1; // 音量10%
 
+                winSFX = new Audio('winSFX.mp3');
+                winSFX.volume = 0.1; // 音量10%
+
                 // ヒット効果音
                 hitSound = new Audio('hit-sound.mp3'); // ヒット効果音ファイル
                 hitSound.volume = 0.3; // 音量30%
@@ -171,6 +175,16 @@
                 backgroundMusic.play().catch(error => {
                     // 自動再生ポリシーによるエラーをキャッチ
                     console.log("音楽の自動再生に失敗しました。ユーザーインタラクションが必要です:", error);
+                });
+            }
+        }
+
+        function playwinSFX() {
+            if (winSFX) {
+                // 万が一再生中なら最初から再生し直す
+                winSFX.currentTime = 0;
+                winSFX.play().catch(error => {
+                    console.log("勝利音声の再生に失敗しました:", error);
                 });
             }
         }
@@ -348,11 +362,11 @@
         function setupLevel() {
             // 中央に敵を配置
             createEnemy(window.innerWidth * 0.5, window.innerHeight * 0.4);
-            
+
             // 台座
             const platformX = window.innerWidth * 0.5;
             const platformY = window.innerHeight * 0.5;
-            const platformWidth = 150;
+            const platformWidth = 100;
             const platformHeight = 30;
             createPlatform(platformX, platformY, platformWidth, platformHeight);
 
@@ -551,7 +565,7 @@
         // 敵に当たった回数をチェック
         function checkEnemyHits() {
             // if (hitCount >= hitsRequired) {
-            if (hitCount >= 9) {
+            if (hitCount >= 1) { // for debug
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
@@ -561,6 +575,7 @@
                 Body.set(enemyBody, {
                     frictionAir: 0.6
                 });
+                //
                 setTimeout(gameWin, 1500);
                 return true;
             }
@@ -590,6 +605,7 @@
 
             // 背景音楽を停止
             stopBackgroundMusic();
+            playwinSFX();
         }
 
         // ゲームオーバーメッセージを表示
