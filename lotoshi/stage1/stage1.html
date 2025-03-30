@@ -84,16 +84,11 @@
 <body>
     <div id="canvas-container"></div>
     <div id="game-info">
-        <div>スコア: <span id="score">0</span></div>
-        <div>残りボール: <span id="balls-left">10</span></div>
-        <div>ステータス: <span id="status">ブロックを倒そう!</span></div>
+        <div>のこりボール: <span id="balls-left">10</span></div>
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
-        <h2>クリア！</h2>
-        <p>おめでとうございます！</p>
-        <p>スコア: <span id="final-score">0</span></p>
-        <p>使用ボール数: <span id="balls-used">0</span></p>
+        <p>ひくさ：<span id="balls-used">0</span></p>
         <button id="next-btn">すすむ</button>
     </div>
 
@@ -110,7 +105,6 @@
         const Vector = Matter.Vector;
 
         // ゲーム状態
-        let score = 0;
         let ballsLeft = 10;
         let targetBlock = null;
         let platform = null;
@@ -499,10 +493,6 @@
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
-                score = baseScore + bonusScore;
-
-                document.getElementById('score').textContent = score;
-                document.getElementById('status').textContent = "ブロック倒れた！";
 
                 // ゲームクリア
                 setTimeout(gameWin, 1500);
@@ -513,7 +503,7 @@
         function checkGameOver() {
             if (ballsLeft <= 0 && !blockFallen) {
                 isGameOver = true;
-                showGameOverMessage("ゲームオーバー！もう一度挑戦しよう！");
+                showGameOverMessage("まけ");
             }
         }
 
@@ -524,7 +514,6 @@
             isGameOver = true;
 
             // 最終スコア更新
-            document.getElementById('final-score').textContent = score;
             document.getElementById('balls-used').textContent = 10 - ballsLeft;
 
             // クリア画面表示
@@ -547,7 +536,7 @@
             gameOverDiv.style.fontSize = '24px';
             gameOverDiv.style.textAlign = 'center';
             gameOverDiv.style.zIndex = '2000';
-            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">もう一度プレイ</button>';
+            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">泣きの一回</button>';
 
             document.body.appendChild(gameOverDiv);
 
@@ -566,14 +555,12 @@
             }
 
             // スコアと残りボールをリセット
-            score = 0;
             ballsLeft = 10;
             isGameOver = false;
             blockFallen = false;
             textureChanged = false; // テクスチャ変更フラグもリセット
-            document.getElementById('score').textContent = score;
             document.getElementById('balls-left').textContent = ballsLeft;
-            document.getElementById('status').textContent = "ブロックを倒そう!";
+            // document.getElementById('status').textContent = "ブロックを倒そう!";
 
             // クリア画面を非表示に
             document.getElementById('level-complete').style.display = 'none';

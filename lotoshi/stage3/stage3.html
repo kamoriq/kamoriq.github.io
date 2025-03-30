@@ -530,7 +530,8 @@
 
         // 敵に当たった回数をチェック
         function checkEnemyHits() {
-            if (hitCount >= hitsRequired) {
+            // if (hitCount >= hitsRequired) {
+                if (hitCount >= 1) {
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
@@ -550,7 +551,7 @@
         function checkGameOver() {
             if (ballsLeft <= 0 && hitCount < hitsRequired) {
                 isGameOver = true;
-                showGameOverMessage("ゲームオーバー！もう一度挑戦しよう！");
+                showGameOverMessage("まけ");
             }
         }
 
@@ -587,7 +588,7 @@
             gameOverDiv.style.fontSize = '24px';
             gameOverDiv.style.textAlign = 'center';
             gameOverDiv.style.zIndex = '2000';
-            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">もう一度プレイ</button>';
+            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">泣きの一回</button>';
 
             document.body.appendChild(gameOverDiv);
 
