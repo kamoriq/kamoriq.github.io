@@ -310,15 +310,17 @@
 
         // 発射台を作成
         const launcher = Bodies.rectangle(
-            window.innerWidth * 0.1, // 左側に配置
+            window.innerWidth * 0.13, // 左側に配置
             window.innerHeight - 80,
             100,
             20, {
             isStatic: true,
             render: {
-                fillStyle: '#555555',
-                strokeStyle: '#222222',
-                lineWidth: 2
+                sprite: {
+                    texture: '../player.png',
+                    xScale: 0.1,
+                    yScale: 0.1
+                }
             },
             label: "launcher"
         }
@@ -429,7 +431,7 @@
         // レベル（台座と立方体）を設定
         function setupLevel() {
             // 台座を右側に配置
-            const platformX = window.innerWidth * 0.9;
+            const platformX = window.innerWidth * 0.92;
             const platformY = window.innerHeight * 0.7;
             const platformWidth = 20;
             const platformHeight = 30;
@@ -447,23 +449,23 @@
             // 動くプラットフォームを追加
             // 1つ目のプラットフォーム（左側）
             createMovingPlatform(
-                window.innerWidth * 0.3,           // x位置
+                window.innerWidth * 0.4,           // x位置
                 window.innerHeight * 0.8,          // 初期y位置
                 100,                               // 幅
                 15,                                // 高さ
-                window.innerHeight * 0.6,          // 最小y位置
-                window.innerHeight * 0.8,          // 最大y位置
+                window.innerHeight * 0.5,          // 最小y位置
+                window.innerHeight * 0.9,          // 最大y位置
                 3                                  // 速度
             );
 
             // 2つ目のプラットフォーム（右側）
             createMovingPlatform(
-                window.innerWidth * 0.6,           // x位置
-                window.innerHeight * 0.5,          // 初期y位置
+                window.innerWidth * 0.7,           // x位置
+                window.innerHeight * 0.6,          // 初期y位置
                 100,                               // 幅
                 15,                                // 高さ
                 window.innerHeight * 0.5,          // 最小y位置
-                window.innerHeight * 0.8,          // 最大y位置
+                window.innerHeight * 0.9,          // 最大y位置
                 3.5                                // 速度
             );
 
@@ -602,9 +604,11 @@
                     friction: 0.05, // 摩擦
                     density: 0.002, // 密度
                     render: {
-                        fillStyle: '#ff0000', // 赤色
-                        strokeStyle: '#880000',
-                        lineWidth: 2
+                        sprite: {
+                            texture: '../ball.png',
+                            xScale: 0.1,
+                            yScale: 0.1
+                        }
                     },
                     label: "ball"
                 }

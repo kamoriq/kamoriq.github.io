@@ -314,8 +314,6 @@
                 frictionAir: 0.0001, // 空気抵抗を低く
                 render: {
                     sprite: {
-    fillStyle: '#FF0000',
-
                         texture: 'boss1Sleeping.png',
                         xScale: 0.1,
                         yScale: 0.1
@@ -330,15 +328,17 @@
 
         // 発射台を作成
         const launcher = Bodies.rectangle(
-            window.innerWidth * 0.1, // 左側に配置
+            window.innerWidth * 0.2, // 左側に配置
             window.innerHeight - 80,
             100,
             20, {
             isStatic: true,
             render: {
-                fillStyle: '#555555',
-                strokeStyle: '#222222',
-                lineWidth: 2
+                sprite: {
+                    texture: '../player.png',
+                    xScale: 0.1,
+                    yScale: 0.1
+                }
             },
             label: "launcher"
         }
@@ -364,7 +364,7 @@
         // レベル（敵と障害物）を設定
         function setupLevel() {
             // 中央に敵を配置
-            createEnemy(window.innerWidth * 0.5, window.innerHeight * 0.4);
+            createEnemy(window.innerWidth * 0.5, window.innerHeight * 0.425);
 
             // 台座
             const platformX = window.innerWidth * 0.5;
@@ -380,8 +380,6 @@
             // カメラを設定
             setupCamera();
 
-            // 背景音楽を開始
-            playBackgroundMusic();
         }
 
         // 仮のボールを描画
@@ -516,9 +514,11 @@
                     friction: 0.05, // 摩擦
                     density: 0.002, // 密度
                     render: {
-                        fillStyle: '#ff0000', // 赤色
-                        strokeStyle: '#880000',
-                        lineWidth: 2
+                        sprite: {
+                            texture: '../ball.png',
+                            xScale: 0.1,
+                            yScale: 0.1
+                        }
                     },
                     label: "ball"
                 }
@@ -767,16 +767,16 @@
                     if (!firstHit) {
                         firstHit = true;
 
+                        playBackgroundMusic();
+
                         // 敵を静的から動的に変更
                         Body.setStatic(enemy, false);
 
                         // 敵に初期速度を設定
                         Body.setVelocity(enemy, {
-                            x: (Math.random() - 0.5) * 5,
-                            y: (Math.random() - 0.5) * 5
+                            x: (Math.random() - 0.5) * 10,
+                            y: (Math.random() - 0.5) * 10
                         });
-
-                        // 敵が動き始めたことをステータスに表示
 
                         // 少し時間を置いてステータスを元に戻す
                         setTimeout(function () {
@@ -936,12 +936,12 @@
             // 音楽を初期化
             initAudio();
 
-            // ユーザーインタラクションで音楽再生を有効にする
-            document.addEventListener('click', function () {
-                if (backgroundMusic && backgroundMusic.paused) {
-                    playBackgroundMusic();
-                }
-            }, { once: true }); // 一度だけ実行
+            // // ユーザーインタラクションで音楽再生を有効にする
+            // document.addEventListener('click', function () {
+            //     if (backgroundMusic && backgroundMusic.paused) {
+            //         playBackgroundMusic();
+            //     }
+            // }, { once: true }); // 一度だけ実行
         });
 
         // 初期レベルを設定
