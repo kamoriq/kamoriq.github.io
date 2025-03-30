@@ -14,12 +14,12 @@
             /* 空色の背景 */
             font-family: Arial, sans-serif;
         }
-        
+
         #canvas-container {
             width: 100%;
             height: 100vh;
         }
-        
+
         #game-info {
             position: absolute;
             top: 20px;
@@ -31,7 +31,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
             z-index: 100;
         }
-        
+
         #instructions {
             position: absolute;
             bottom: 20px;
@@ -44,7 +44,7 @@
             line-height: 1.5;
             z-index: 100;
         }
-        
+
         #reset-btn {
             position: absolute;
             top: 20px;
@@ -59,11 +59,11 @@
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
             z-index: 100;
         }
-        
+
         #reset-btn:hover {
             background-color: #e74c3c;
         }
-        
+
         #level-complete {
             position: absolute;
             top: 50%;
@@ -103,6 +103,15 @@
         const Body = Matter.Body;
         const Events = Matter.Events;
         const Vector = Matter.Vector;
+
+        // 画像プリロード用の変数を追加
+        let imagesLoaded = false;
+        let gameImages = [
+            'boss1.png',
+            'boss1OnHit.png'
+            // ゲームで使用する他の画像があれば追加
+        ];
+        let loadedImagesCount = 0;
 
         // ゲーム状態
         let ballsLeft = 10;
@@ -158,12 +167,12 @@
             window.innerHeight,
             window.innerWidth * 3, // 横長に拡張
             50, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#663300' // 茶色の地面
-                },
-                label: "ground"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#663300' // 茶色の地面
+            },
+            label: "ground"
+        }
         );
 
         const ceiling = Bodies.rectangle(
@@ -171,24 +180,24 @@
             0,
             window.innerWidth * 3, // 横長に拡張
             50, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "ceiling"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "ceiling"
+        }
         );
 
         const leftWall = Bodies.rectangle(-window.innerWidth / 2,
             window.innerHeight / 2,
             50,
             window.innerHeight, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "wall"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "wall"
+        }
         );
 
         const rightWall = Bodies.rectangle(
@@ -196,12 +205,12 @@
             window.innerHeight / 2,
             50,
             window.innerHeight, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#2e2b44'
-                },
-                label: "wall"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#2e2b44'
+            },
+            label: "wall"
+        }
         );
 
         // 世界に壁を追加
@@ -249,14 +258,14 @@
             window.innerHeight - 80,
             100,
             20, {
-                isStatic: true,
-                render: {
-                    fillStyle: '#555555',
-                    strokeStyle: '#222222',
-                    lineWidth: 2
-                },
-                label: "launcher"
-            }
+            isStatic: true,
+            render: {
+                fillStyle: '#555555',
+                strokeStyle: '#222222',
+                lineWidth: 2
+            },
+            label: "launcher"
+        }
         );
 
         Composite.add(engine.world, launcher);
@@ -274,6 +283,91 @@
                     y: window.innerHeight
                 }
             });
+        }
+
+        // 画像をプリロードする関数
+        function preloadImages() {
+            console.log("画像のプリロードを開始します...");
+
+            // ローディング表示を追加（オプション）
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading-screen';
+            loadingDiv.style.position = 'fixed';
+            loadingDiv.style.top = '0';
+            loadingDiv.style.left = '0';
+            loadingDiv.style.width = '100%';
+            loadingDiv.style.height = '100%';
+            loadingDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            loadingDiv.style.color = 'white';
+            loadingDiv.style.display = 'flex';
+            loadingDiv.style.justifyContent = 'center';
+            loadingDiv.style.alignItems = 'center';
+            loadingDiv.style.zIndex = '9999';
+            loadingDiv.innerHTML = '<div>画像を読み込み中...</div>';
+            document.body.appendChild(loadingDiv);
+
+            // 各画像を読み込む
+            for (let i = 0; i < gameImages.length; i++) {
+                const img = new Image();
+                img.onload = function () {
+                    loadedImagesCount++;
+                    console.log(`画像を読み込みました: ${gameImages[i]} (${loadedImagesCount}/${gameImages.length})`);
+
+                    // すべての画像が読み込まれたらゲームを開始
+                    if (loadedImagesCount === gameImages.length) {
+                        imagesLoaded = true;
+                        console.log("すべての画像のプリロードが完了しました");
+
+                        // ローディング画面を削除
+                        const loadingScreen = document.getElementById('loading-screen');
+                        if (loadingScreen) {
+                            loadingScreen.remove();
+                        }
+
+                        // ゲームを開始
+                        startGame();
+                    }
+                };
+                img.onerror = function () {
+                    console.error(`画像の読み込みに失敗しました: ${gameImages[i]}`);
+                    loadedImagesCount++;
+
+                    // エラーがあっても続行する
+                    if (loadedImagesCount === gameImages.length) {
+                        imagesLoaded = true;
+
+                        // ローディング画面を削除
+                        const loadingScreen = document.getElementById('loading-screen');
+                        if (loadingScreen) {
+                            loadingScreen.remove();
+                        }
+
+                        // ゲームを開始
+                        startGame();
+                    }
+                };
+                img.src = gameImages[i];
+            }
+        }
+
+        // ゲームを開始する関数
+        function startGame() {
+            // レベル（台座と立方体）を設定
+            setupLevel();
+
+            // 初期ボール位置
+            resetBallPosition();
+
+            // レンダラーを実行
+            Render.run(render);
+
+            // エンジンを実行
+            Runner.run(runner, engine);
+
+            // 定期的にブロックの状態をチェック
+            setInterval(checkBlockStatus, 100);
+
+            console.log("ゲームが開始されました");
         }
 
         // レベル（台座と立方体）を設定
@@ -540,7 +634,7 @@
 
             document.body.appendChild(gameOverDiv);
 
-            document.getElementById('restart-btn').addEventListener('click', function() {
+            document.getElementById('restart-btn').addEventListener('click', function () {
                 resetGame();
                 gameOverDiv.remove();
             });
@@ -590,7 +684,7 @@
         }
 
         // マウスクリックでボールを直接発射
-        render.canvas.addEventListener('click', function(event) {
+        render.canvas.addEventListener('click', function (event) {
             if (isGameOver) return;
 
             // マウス座標の取得
@@ -619,7 +713,7 @@
         });
 
         // マウス移動で矢印を常に更新（ボールの位置が設定されていれば）
-        render.canvas.addEventListener('mousemove', function(event) {
+        render.canvas.addEventListener('mousemove', function (event) {
             // マウス位置を常に記録
             const rect = render.canvas.getBoundingClientRect();
             lastMouseX = event.clientX - rect.left;
@@ -631,7 +725,7 @@
         });
 
         // スペースキーでも発射できるように（最終版）
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.code === 'Space' && !isGameOver && ballPosition) {
                 // ボールの位置をセット（まだセットされていない場合）
                 if (!ballPosition) {
@@ -658,21 +752,12 @@
         document.getElementById('reset-btn').addEventListener('click', resetGame);
 
         // 次のレベルボタン
-        document.getElementById('next-btn').addEventListener('click', function() {
+        document.getElementById('next-btn').addEventListener('click', function () {
             window.location.href = '../stage2/stage2.html'; // パスはフォルダ構造によって調整
         });
 
-        // 定期的にブロックの状態をチェック
-        setInterval(checkBlockStatus, 100);
-
-        // 初期レベルを設定
-        setupLevel();
-
-        // 初期ボール位置
-        resetBallPosition();
-
         // 衝突イベントを検出
-        Events.on(engine, 'collisionStart', function(event) {
+        Events.on(engine, 'collisionStart', function (event) {
             // すべての衝突ペアをチェック
             const pairs = event.pairs;
 
@@ -699,14 +784,14 @@
                         // 一定時間後にテクスチャを元に戻すタイマーを設定
                         clearTimeout(textureTimer); // 既存のタイマーをクリア
 
-                        textureTimer = setTimeout(function() {
+                        textureTimer = setTimeout(function () {
                             // ブロックがまだ存在し、ゲームオーバーでなければテクスチャを元に戻す
                             if (targetBlock && !isGameOver && !blockFallen) {
                                 targetBlock.render.sprite.texture = 'boss1.png';
                                 textureChanged = false; // テクスチャ変更フラグをリセット
                                 console.log("テクスチャを boss1.png に戻しました");
                             }
-                        }, 500); // 2秒後に元に戻す
+                        }, 500); // 0.5秒後に元に戻す
 
                         break;
                     }
@@ -714,14 +799,8 @@
             }
         });
 
-        // レンダラーを実行
-        Render.run(render);
-
-        // エンジンを実行
-        Runner.run(runner, engine);
-
         // ウィンドウリサイズ対応
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             render.options.width = window.innerWidth;
             render.options.height = window.innerHeight;
             render.canvas.width = window.innerWidth;
@@ -759,6 +838,12 @@
 
             // レベルをリセット
             resetGame();
+        });
+
+        // ページ読み込み完了時に画像をプリロードしてからゲーム開始
+        window.addEventListener('DOMContentLoaded', function () {
+            // 画像をプリロードしてからゲームを開始
+            preloadImages();
         });
     </script>
 </body>
