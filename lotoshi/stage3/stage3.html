@@ -335,7 +335,7 @@
 
             // ヒットカウントをリセット
             hitCount = 0;
-            document.getElementById('hits').textContent = hitCount;
+            document.getElementById('hits').textContent = hitsRequired - hitCount;
 
             // カメラを設定
             setupCamera();
@@ -608,7 +608,7 @@
             firstBallFired = false; // 最初のボールフラグをリセット
             firstHit = false;       // 最初のヒットフラグをリセット
             document.getElementById('balls-left').textContent = ballsLeft;
-            document.getElementById('hits').textContent = hitCount;
+            document.getElementById('hits').textContent = hitsRequired;
 
             // クリア画面を非表示に
             document.getElementById('level-complete').style.display = 'none';
@@ -755,7 +755,7 @@
                     // ヒット数を増やして敵を加速させる
                     if (!pair.isHitCounted) {
                         hitCount++;
-                        document.getElementById('hits').textContent = hitCount;
+                        document.getElementById('hits').textContent = hitsRequired - hitCount;
                         pair.isHitCounted = true;
                         
                         // ヒット効果音を再生
