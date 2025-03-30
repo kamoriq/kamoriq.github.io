@@ -89,8 +89,9 @@
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
-        <h2>くりあ</h2>
-        <p>ひくさ：<span id="balls-used">0</span></p>
+        <h2>げーむ　くりあ</h2>
+        <h2>すごい！</h2>
+        <p>ろーすこあ：<span id="balls-used">0</span></p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -305,7 +306,7 @@
 
         // 敵キャラクターを作成する関数
         function createEnemy(x, y) {
-            enemyBody = Bodies.circle(x, y, 30, {
+            enemyBody = Bodies.circle(x, y, 40, {
                 isStatic: true,  // 静的オブジェクトとして作成（重力や力の影響を受けない）
                 restitution: 1, // 高い反発係数
                 friction: 0.05,   // 低い摩擦
@@ -313,9 +314,11 @@
                 frictionAir: 0.0001, // 空気抵抗を低く
                 render: {
                     sprite: {
-                        texture: 'boss1.png',
-                        xScale: 0.15,
-                        yScale: 0.15
+    fillStyle: '#FF0000',
+
+                        texture: 'boss1Sleeping.png',
+                        xScale: 0.1,
+                        yScale: 0.1
                     }
                 },
                 label: "enemy"
@@ -565,7 +568,7 @@
         // 敵に当たった回数をチェック
         function checkEnemyHits() {
             // if (hitCount >= hitsRequired) {
-            if (hitCount >= 1) { // for debug
+            if (hitCount >= 2) { // for debug
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
@@ -576,6 +579,7 @@
                     frictionAir: 0.6
                 });
                 //
+
                 setTimeout(gameWin, 1500);
                 return true;
             }
@@ -604,6 +608,8 @@
             levelComplete.style.display = 'block';
 
             // 背景音楽を停止
+            enemyBody.render.sprite.texture = 'boss1Defeated.png';
+
             stopBackgroundMusic();
             playwinSFX();
         }
@@ -623,7 +629,7 @@
             gameOverDiv.style.fontSize = '24px';
             gameOverDiv.style.textAlign = 'center';
             gameOverDiv.style.zIndex = '2000';
-            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">泣きの一回</button>';
+            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">おかわり</button>';
 
             document.body.appendChild(gameOverDiv);
 
@@ -825,7 +831,7 @@
                         Body.setVelocity(enemy, newVelocity);
 
                         // ヒット時のエフェクト（敵が一瞬大きくなる）
-                        const originalScale = 0.15;
+                        const originalScale = 0.1;
                         const scaleUp = originalScale * 1.2;
 
                         // サイズを一瞬大きくする

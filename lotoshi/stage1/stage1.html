@@ -88,7 +88,7 @@
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
-        <p>ひくさ：<span id="balls-used">0</span></p>
+        <p>ろーすこあ<span id="balls-used">0</span></p>
         <button id="next-btn">すすむ</button>
     </div>
 
@@ -240,6 +240,7 @@
                 density: 0.01, // 密度を5倍に増加（0.002→0.01）
                 render: {
                     sprite: {
+                        // strokeStyle: '#000000',
                         texture: 'boss1.png',
                         xScale: 0.2,
                         yScale: 0.2
@@ -630,7 +631,7 @@
             gameOverDiv.style.fontSize = '24px';
             gameOverDiv.style.textAlign = 'center';
             gameOverDiv.style.zIndex = '2000';
-            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">泣きの一回</button>';
+            gameOverDiv.innerHTML = message + '<br><br><button id="restart-btn" style="padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 18px;">おかわり</button>';
 
             document.body.appendChild(gameOverDiv);
 
