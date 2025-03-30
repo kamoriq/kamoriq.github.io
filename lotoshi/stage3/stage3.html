@@ -87,7 +87,6 @@
         <div>スコア: <span id="score">0</span></div>
         <div>残りボール: <span id="balls-left">10</span></div>
         <div>ヒット数: <span id="hits">0</span> / 9</div>
-        <div>ステータス: <span id="status">敵に9回ヒットさせよう!</span></div>
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
@@ -538,7 +537,6 @@
                 score = baseScore + bonusScore;
 
                 document.getElementById('score').textContent = score;
-                document.getElementById('status').textContent = "敵を倒した！";
 
                 // ゲームクリア
                 setTimeout(gameWin, 1500);
@@ -617,7 +615,6 @@
             document.getElementById('score').textContent = score;
             document.getElementById('balls-left').textContent = ballsLeft;
             document.getElementById('hits').textContent = hitCount;
-            document.getElementById('status').textContent = "敵に9回ヒットさせよう!";
 
             // クリア画面を非表示に
             document.getElementById('level-complete').style.display = 'none';
@@ -738,12 +735,10 @@
                         });
                         
                         // 敵が動き始めたことをステータスに表示
-                        document.getElementById('status').textContent = "敵が動き出した！";
                         
                         // 少し時間を置いてステータスを元に戻す
                         setTimeout(function() {
                             if (!isGameOver) {
-                                document.getElementById('status').textContent = "敵に9回ヒットさせよう!";
                             }
                         }, 2000);
                     }
