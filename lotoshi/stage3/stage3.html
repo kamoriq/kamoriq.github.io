@@ -567,8 +567,8 @@
 
         // 敵に当たった回数をチェック
         function checkEnemyHits() {
-            // if (hitCount >= hitsRequired) {
-            if (hitCount >= 2) { // for debug
+            if (hitCount >= hitsRequired) {
+            // if (hitCount >= 2) { // for debug
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
