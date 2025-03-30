@@ -84,15 +84,13 @@
 <body>
     <div id="canvas-container"></div>
     <div id="game-info">
-        <div>スコア: <span id="score">0</span></div>
-        <div>残りボール: <span id="balls-left">10</span></div>
-        <div>ヒット数: <span id="hits">0</span> / 9</div>
+        <div>のこりボール: <span id="balls-left">10</span></div>
+        <div>たいりょく: <span id="hits">9</span> / 9</div>
     </div>
     <button id="reset-btn">リセット</button>
     <div id="level-complete">
         <h2>くりあ</h2>
-        <p>スコア: <span id="final-score">0</span></p>
-        <p>使用ボール数: <span id="balls-used">0</span></p>
+        <p>ひくさ：<span id="balls-used">0</span></p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
@@ -534,9 +532,7 @@
                 // スコア計算（残りボール数に応じてボーナス）
                 const baseScore = 1000;
                 const bonusScore = ballsLeft * 500; // 残りボール1つにつき500点
-                score = baseScore + bonusScore;
 
-                document.getElementById('score').textContent = score;
 
                 // ゲームクリア
                 setTimeout(gameWin, 1500);
@@ -560,7 +556,6 @@
             isGameOver = true;
 
             // 最終スコア更新
-            document.getElementById('final-score').textContent = score;
             document.getElementById('balls-used').textContent = 10 - ballsLeft;
 
             // クリア画面表示
@@ -612,7 +607,6 @@
             textureChanged = false; // テクスチャ変更フラグもリセット
             firstBallFired = false; // 最初のボールフラグをリセット
             firstHit = false;       // 最初のヒットフラグをリセット
-            document.getElementById('score').textContent = score;
             document.getElementById('balls-left').textContent = ballsLeft;
             document.getElementById('hits').textContent = hitCount;
 
