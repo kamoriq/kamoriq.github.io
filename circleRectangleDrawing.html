@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ワイヤーフレームお絵描きゲーム</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 90vh;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        
+        #controls {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background-color: #eee;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        button {
+            margin: 0 5px;
+            padding: 8px 12px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #45a049;
+        }
+        
+        button.active {
+            background-color: #357a38;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin: 0 10px;
+        }
+        
+        .slider-container label {
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+        
+        input[type="range"] {
+            width: 100px;
+        }
+        
+        input[type="color"] {
+            margin: 0 5px;
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="controls">
+        <button id="circle-btn">丸</button>
+        <button id="rectangle-btn">四角</button>
+        <div class="slider-container">
+            <label for="size-slider">サイズ:</label>
+            <input type="range" id="size-slider" min="10" max="100" value="30">
+        </div>
+        <div class="slider-container">
+            <label for="line-width">線の太さ:</label>
+            <input type="range" id="line-width" min="1" max="10" value="2">
+        </div>
+        <div class="slider-container">
+            <label for="stroke-color">線の色:</label>
+            <input type="color" id="stroke-color" value="#000000">
+        </div>
+        <button id="clear-btn">クリア</button>
+        <button id="save-btn">保存</button>
+    </div>
+    <div id="canvas-container">
+        <!-- キャンバスはJavaScriptで作成されます -->
+    </div>
+
+    <!-- Matter.jsライブラリ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.18.0/matter.min.js"></script>
+
+    <script>
+        // Matter.jsモジュールの読み込み
+        const {
+            Engine,
+            Render,
+            Runner,
+            Bodies,
+            Composite,
+            Body,
+            Mouse,
+            MouseConstraint,
+            Events,
+            Vector
+        } = Matter;
+
+        // キャンバスのサイズを設定
+        const canvasWidth = window.innerWidth;
+        const canvasHeight = window.innerHeight * 0.9;
+
+        // エンジンを作成
+        const engine = Engine.create();
+        engine.gravity.y = 0; // 重力をオフにする
+
+        // レンダラーを作成
+        const render = Render.create({
+            element: document.getElementById('canvas-container'),
+            engine: engine,
+            options: {
+                width: canvasWidth,
+                height: canvasHeight,
+                wireframes: true, // ワイヤーフレームモード
+                background: '#ffffff',
+                showAngleIndicator: false,
+                showCollisions: false,
+                showVelocity: false
+            }
+        });
+
+        // レンダラーを実行
+        Render.run(render);
+
+        // ランナーを作成して実行
+        const runner = Runner.create();
+        Runner.run(runner, engine);
+
+        // マウスコントロールを追加
+        const mouse = Mouse.create(render.canvas);
+        const mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 0.2,
+                render: {
+                    visible: false
+                }
+            }
+        });
+
+        Composite.add(engine.world, mouseConstraint);
+
+        // マウスの動きに合わせてレンダラーもスクロールさせる
+        render.mouse = mouse;
+
+        // 描画モードとサイズの初期設定
+        let currentShape = 'circle';
+        let currentSize = 30;
+        let currentLineWidth = 2;
+        let currentStrokeColor = '#000000';
+        let isCreating = false;
+        let startPos = null;
+        let tempBody = null;
+        let shapes = [];
+
+        // UI要素を取得
+        const circleBtn = document.getElementById('circle-btn');
+        const rectangleBtn = document.getElementById('rectangle-btn');
+        const sizeSlider = document.getElementById('size-slider');
+        const lineWidthSlider = document.getElementById('line-width');
+        const strokeColorPicker = document.getElementById('stroke-color');
+        const clearBtn = document.getElementById('clear-btn');
+        const saveBtn = document.getElementById('save-btn');
+
+        // ボタンのアクティブスタイル設定
+        circleBtn.classList.add('active');
+
+        // イベントリスナー
+        circleBtn.addEventListener('click', () => {
+            currentShape = 'circle';
+            circleBtn.classList.add('active');
+            rectangleBtn.classList.remove('active');
+        });
+
+        rectangleBtn.addEventListener('click', () => {
+            currentShape = 'rectangle';
+            rectangleBtn.classList.add('active');
+            circleBtn.classList.remove('active');
+        });
+
+        sizeSlider.addEventListener('input', (e) => {
+            currentSize = parseInt(e.target.value);
+        });
+
+        lineWidthSlider.addEventListener('input', (e) => {
+            currentLineWidth = parseInt(e.target.value);
+            // レンダラーの線の太さを更新
+            render.options.wireframeWidth = currentLineWidth;
+        });
+
+        strokeColorPicker.addEventListener('input', (e) => {
+            currentStrokeColor = e.target.value;
+            // レンダラーの線の色を更新
+            render.options.wireframes = false;
+            render.options.wireframeBackground = 'transparent';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            // すべての図形を削除
+            Composite.clear(engine.world, false, true);
+            // マウスコンストレイントを再追加
+            Composite.add(engine.world, mouseConstraint);
+            shapes = [];
+        });
+
+        saveBtn.addEventListener('click', () => {
+            // キャンバスを画像として保存
+            const link = document.createElement('a');
+            link.download = 'wireframe-drawing.png';
+            link.href = render.canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // マウスイベント
+        render.canvas.addEventListener('mousedown', (e) => {
+            if (mouseConstraint.body) {
+                // 既存の図形をクリックした場合は何もしない
+                return;
+            }
+
+            isCreating = true;
+
+            // マウスの位置を取得
+            const rect = render.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            startPos = {
+                x,
+                y
+            };
+
+            // 一時的な図形を作成
+            if (currentShape === 'circle') {
+                tempBody = Bodies.circle(x, y, 1, {
+                    isStatic: true,
+                    collisionFilter: {
+                        group: 0,
+                        category: 0x0001,
+                        mask: 0x0000 // 他のどの図形とも衝突しない設定
+                    },
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: currentStrokeColor,
+                        lineWidth: currentLineWidth
+                    }
+                });
+            } else {
+                tempBody = Bodies.rectangle(x, y, 2, 2, {
+                    isStatic: true,
+                    collisionFilter: {
+                        group: 0,
+                        category: 0x0001,
+                        mask: 0x0000 // 他のどの図形とも衝突しない設定
+                    },
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: currentStrokeColor,
+                        lineWidth: currentLineWidth
+                    }
+                });
+            }
+
+            Composite.add(engine.world, tempBody);
+        });
+
+        render.canvas.addEventListener('mousemove', (e) => {
+            if (!isCreating || !startPos) return;
+
+            // マウスの位置を取得
+            const rect = render.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // 図形のサイズを更新
+            if (currentShape === 'circle') {
+                // 距離を計算
+                const distance = Math.sqrt(Math.pow(x - startPos.x, 2) + Math.pow(y - startPos.y, 2));
+                const radius = Math.max(1, distance);
+
+                // 一時的な図形を更新
+                Composite.remove(engine.world, tempBody);
+                tempBody = Bodies.circle(startPos.x, startPos.y, radius, {
+                    isStatic: true,
+                    collisionFilter: {
+                        group: 0,
+                        category: 0x0001,
+                        mask: 0x0000 // 他のどの図形とも衝突しない設定
+                    },
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: currentStrokeColor,
+                        lineWidth: currentLineWidth
+                    }
+                });
+                Composite.add(engine.world, tempBody);
+            } else {
+                // 四角形の幅と高さを計算
+                const width = Math.abs(x - startPos.x) * 2;
+                const height = Math.abs(y - startPos.y) * 2;
+
+                // 一時的な図形を更新
+                Composite.remove(engine.world, tempBody);
+                tempBody = Bodies.rectangle(startPos.x, startPos.y, width, height, {
+                    isStatic: true,
+                    collisionFilter: {
+                        group: 0,
+                        category: 0x0001,
+                        mask: 0x0000 // 他のどの図形とも衝突しない設定
+                    },
+                    render: {
+                        fillStyle: 'transparent',
+                        strokeStyle: currentStrokeColor,
+                        lineWidth: currentLineWidth
+                    }
+                });
+                Composite.add(engine.world, tempBody);
+            }
+        });
+
+        render.canvas.addEventListener('mouseup', () => {
+            if (!isCreating) return;
+
+            isCreating = false;
+
+            if (tempBody) {
+                // 一時的な図形を動かせるようにする
+                Body.setStatic(tempBody, false);
+
+                // 衝突しないままの設定を保持
+                tempBody.collisionFilter = {
+                    group: 0,
+                    category: 0x0001,
+                    mask: 0x0000 // 他のどの図形とも衝突しない設定
+                };
+
+                // 図形リストに追加
+                shapes.push(tempBody);
+
+                tempBody = null;
+            }
+
+            startPos = null;
+        });
+
+        // ウィンドウサイズ変更時にキャンバスサイズを調整
+        window.addEventListener('resize', () => {
+            const canvasWidth = window.innerWidth;
+            const canvasHeight = window.innerHeight * 0.9;
+
+            render.options.width = canvasWidth;
+            render.options.height = canvasHeight;
+            render.canvas.width = canvasWidth;
+            render.canvas.height = canvasHeight;
+        });
+
+        // マウスコンストレイントのイベント
+        Events.on(mouseConstraint, 'mousedown', (event) => {
+            const mousePosition = event.mouse.position;
+            console.log('Mouse down at', mousePosition);
+        });
+
+        // レンダリングカスタマイズ
+        Events.on(render, 'afterRender', () => {
+            const context = render.context;
+            context.lineWidth = currentLineWidth;
+
+            // ワイヤーフレームモードの場合、線の色を設定
+            if (!render.options.wireframes) {
+                context.strokeStyle = currentStrokeColor;
+            }
+        });
+
+        // 初期設定
+        render.options.wireframes = true;
+        render.options.wireframeWidth = currentLineWidth;
+    </script>
+</body>
+
+</html>
